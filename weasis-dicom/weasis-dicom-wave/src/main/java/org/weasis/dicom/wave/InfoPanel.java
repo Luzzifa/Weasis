@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.wave;
 
@@ -26,6 +25,8 @@ import org.weasis.core.api.gui.util.JMVUtils;
 import org.weasis.core.api.gui.util.JSliderW;
 import org.weasis.core.api.gui.util.SliderChangeListener;
 import org.weasis.core.api.util.FontTools;
+import org.weasis.core.api.util.LocalUtil;
+import org.weasis.core.api.util.StringUtil;
 import org.weasis.core.ui.editor.image.ImageViewerEventManager;
 import org.weasis.core.ui.editor.image.ImageViewerPlugin;
 import org.weasis.core.ui.model.utils.imp.DefaultViewModel;
@@ -33,10 +34,7 @@ import org.weasis.core.ui.model.utils.imp.DefaultViewModel;
 class InfoPanel extends JPanel {
     private static final long serialVersionUID = -470038831713011257L;
 
-    public static final DecimalFormat secondFormatter = new DecimalFormat("##.#### s");
-    public static final DecimalFormat mVFormatter = new DecimalFormat("##.#### mV");
-
-    private JLabel lead = new JLabel(" ");
+    private JLabel lead = new JLabel(" "); //$NON-NLS-1$
     private JLabel maximum = new JLabel();
     private JLabel minimum = new JLabel();
 
@@ -121,24 +119,37 @@ class InfoPanel extends JPanel {
     }
 
     public void setMinMax(double minimum, double maximum) {
-        this.minimum.setText(new DecimalFormat("Minimum: ##.#### mV;Minimum: -##.#### mV").format(minimum));
-        this.maximum.setText(new DecimalFormat("Maximum: ##.#### mV;Maximum: -##.#### mV").format(maximum));
+        StringBuilder min = new StringBuilder(Messages.getString("InfoPanel.min")); //$NON-NLS-1$
+        min.append(StringUtil.COLON_AND_SPACE);
+        min.append("##.#### mV;"); //$NON-NLS-1$
+        min.append(Messages.getString("InfoPanel.min")); //$NON-NLS-1$
+        min.append(StringUtil.COLON_AND_SPACE);
+        min.append("-##.#### mV"); //$NON-NLS-1$
+        
+        StringBuilder max = new StringBuilder(Messages.getString("InfoPanel.max")); //$NON-NLS-1$
+        max.append(StringUtil.COLON_AND_SPACE);
+        max.append("##.#### mV;"); //$NON-NLS-1$
+        max.append(Messages.getString("InfoPanel.max")); //$NON-NLS-1$
+        max.append(StringUtil.COLON_AND_SPACE);
+        max.append("-##.#### mV"); //$NON-NLS-1$
+        this.minimum.setText(new DecimalFormat(min.toString(), LocalUtil.getDecimalFormatSymbols()).format(minimum));
+        this.maximum.setText(new DecimalFormat(max.toString(), LocalUtil.getDecimalFormatSymbols()).format(maximum));
     }
 
     public void setCurrentValues(double sec, double mV) {
         if (sec < 0) {
             clearValue(currentLabel, seconds, miliVolt);
         } else {
-            currentLabel.setText("Cursor");
-            seconds.setText(secondFormatter.format(sec));
-            miliVolt.setText(mVFormatter.format(mV));
+            currentLabel.setText(Messages.getString("InfoPanel.cursor")); //$NON-NLS-1$
+            seconds.setText(MarkerAnnotation.secondFormatter.format(sec));
+            miliVolt.setText(MarkerAnnotation.mVFormatter.format(mV));
         }
     }
 
     private void clearValue(JLabel... labels) {
         if (labels != null) {
             for (JLabel l : labels) {
-                l.setText("");
+                l.setText(""); //$NON-NLS-1$
             }
         }
     }

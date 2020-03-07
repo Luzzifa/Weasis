@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.media.data;
 
@@ -20,9 +19,9 @@ import org.weasis.core.api.util.FileUtil;
 public class FileCache {
 
     private final MediaReader reader;
-    private volatile File originalTempFile;
-    private volatile File transformedFile;
-    private volatile boolean requireTransformation;
+    private File originalTempFile;
+    private File transformedFile;
+    private boolean requireTransformation;
 
     public FileCache(MediaReader reader) {
         this.reader = Objects.requireNonNull(reader);
@@ -51,30 +50,30 @@ public class FileCache {
         if (transformedFile != null) {
             return transformedFile;
         }
-        return  getOriginalFile().orElse(null);
+        return getOriginalFile().orElse(null);
     }
 
-    public File getOriginalTempFile() {
+    public synchronized File getOriginalTempFile() {
         return originalTempFile;
     }
 
-    public void setOriginalTempFile(File downloadedFile) {
+    public synchronized void setOriginalTempFile(File downloadedFile) {
         this.originalTempFile = downloadedFile;
     }
 
-    public File getTransformedFile() {
+    public synchronized File getTransformedFile() {
         return transformedFile;
     }
 
-    public void setTransformedFile(File transformedFile) {
+    public synchronized void setTransformedFile(File transformedFile) {
         this.transformedFile = transformedFile;
     }
 
-    public boolean isRequireTransformation() {
+    public synchronized boolean isRequireTransformation() {
         return requireTransformation;
     }
 
-    public void setRequireTransformation(boolean requireTransformation) {
+    public synchronized void setRequireTransformation(boolean requireTransformation) {
         this.requireTransformation = requireTransformation;
     }
 

@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer;
 
@@ -98,7 +97,7 @@ public class LoadLocalDicom extends ExplorerTask<Boolean, String> {
             } else {
                 if (file[i].canRead()) {
                     if (FileUtil.isFileExtensionMatching(file[i], DicomCodec.FILE_EXTENSIONS)
-                        || MimeInspector.isMatchingMimeTypeFromMagicNumber(file[i], DicomMediaIO.MIMETYPE)) {
+                        || MimeInspector.isMatchingMimeTypeFromMagicNumber(file[i], DicomMediaIO.DICOM_MIMETYPE)) {
                         DicomMediaIO loader = new DicomMediaIO(file[i]);
                         if (loader.isReadableDicom()) {
                             // Issue: must handle adding image to viewer and building thumbnail (middle image)
@@ -178,7 +177,7 @@ public class LoadLocalDicom extends ExplorerTask<Boolean, String> {
                 if (t == null) {
                     t = DicomExplorer.createThumbnail(dicomSeries, dicomModel, Thumbnail.DEFAULT_SIZE);
                     dicomSeries.setTag(TagW.Thumbnail, t);
-                    Optional.ofNullable(t).ifPresent(v -> v.repaint());
+                    Optional.ofNullable(t).ifPresent(SeriesThumbnail::repaint);
                 }
 
                 if (DicomModel.isSpecialModality(dicomSeries)) {

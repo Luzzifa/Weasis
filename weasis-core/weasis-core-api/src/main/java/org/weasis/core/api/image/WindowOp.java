@@ -1,22 +1,21 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.image;
 
 import org.weasis.core.api.Messages;
 import org.weasis.core.api.gui.util.ActionW;
 import org.weasis.core.api.image.ImageOpEvent.OpEvent;
+import org.weasis.core.api.image.util.WindLevelParameters;
 import org.weasis.core.api.media.data.ImageElement;
 import org.weasis.core.api.util.LangUtil;
 import org.weasis.opencv.data.PlanarImage;
-
 
 public class WindowOp extends AbstractOp {
 
@@ -74,6 +73,14 @@ public class WindowOp extends AbstractOp {
         }
 
         params.put(Param.OUTPUT_IMG, result);
+    }
+
+    public WindLevelParameters getWindLevelParameters() {
+        ImageElement imageElement = (ImageElement) params.get(P_IMAGE_ELEMENT);
+        if (imageElement != null) {
+            return new WindLevelParameters(imageElement, params);
+        }
+        return null;
     }
 
 }

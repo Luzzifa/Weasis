@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer.internal;
 
@@ -30,7 +29,7 @@ public class Activator implements BundleActivator {
     @Override
     public void start(final BundleContext context) throws Exception {
         String cache = context.getProperty("weasis.portable.dicom.cache"); //$NON-NLS-1$
-        DicomManager.getInstance().setPortableDirCache(!((cache != null) && cache.equalsIgnoreCase("false")));//$NON-NLS-1$
+        DicomManager.getInstance().setPortableDirCache(!((cache != null) && cache.equalsIgnoreCase(Boolean.FALSE.toString())));
         FileUtil.readProperties(new File(BundlePreferences.getDataFolder(context), "import-export.properties"), //$NON-NLS-1$
             IMPORT_EXPORT_PERSISTENCE);
     }
@@ -39,8 +38,8 @@ public class Activator implements BundleActivator {
     public void stop(BundleContext context) throws Exception {
         FileUtil.storeProperties(new File(BundlePreferences.getDataFolder(context), "import-export.properties"), //$NON-NLS-1$
             IMPORT_EXPORT_PERSISTENCE, null);
-        // Save preferences
-        DicomManager.getInstance().savePreferences();
+
+        DicomModel.LOADING_EXECUTOR.shutdownNow();
         DataExplorerView explorer = UIManager.getExplorerplugin(DicomExplorer.NAME);
         if (explorer instanceof DicomExplorer) {
             DicomExplorer dexp = (DicomExplorer) explorer;

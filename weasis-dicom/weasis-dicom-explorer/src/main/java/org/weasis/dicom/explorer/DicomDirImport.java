@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer;
 
@@ -14,8 +13,6 @@ import java.awt.Dialog;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
@@ -88,13 +85,7 @@ public class DicomDirImport extends AbstractItemDialogPage implements ImportDico
         add(textField, gbc_textField);
 
         btnSearch = new JButton(" ... "); //$NON-NLS-1$
-        btnSearch.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                browseImgFile();
-            }
-        });
+        btnSearch.addActionListener(e -> browseImgFile());
         GridBagConstraints gbc_button = new GridBagConstraints();
         gbc_button.anchor = GridBagConstraints.WEST;
         gbc_button.insets = new Insets(5, 5, 5, 0);
@@ -104,15 +95,12 @@ public class DicomDirImport extends AbstractItemDialogPage implements ImportDico
 
         btncdrom = new JButton(Messages.getString("DicomDirImport.detect"), //$NON-NLS-1$
             new ImageIcon(DicomDirImport.class.getResource("/icon/16x16/cd.png"))); //$NON-NLS-1$
-        btncdrom.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                File dcmdir = getDcmDirFromMedia();
-                if (dcmdir != null) {
-                    String path = dcmdir.getPath();
-                    textField.setText(path);
-                    Activator.IMPORT_EXPORT_PERSISTENCE.setProperty(lastDICOMDIR, path);
-                }
+        btncdrom.addActionListener(e -> {
+            File dcmdir = getDcmDirFromMedia();
+            if (dcmdir != null) {
+                String path = dcmdir.getPath();
+                textField.setText(path);
+                Activator.IMPORT_EXPORT_PERSISTENCE.setProperty(lastDICOMDIR, path);
             }
         });
         GridBagConstraints gbc_btnNewButton = new GridBagConstraints();
@@ -235,7 +223,7 @@ public class DicomDirImport extends AbstractItemDialogPage implements ImportDico
         }
         List<LoadSeries> loadSeries = loadDicomDir(file, dicomModel, chckbxWriteInCache.isSelected());
 
-        if (loadSeries != null && loadSeries.size() > 0) {
+        if (loadSeries != null && !loadSeries.isEmpty()) {
             DicomModel.LOADING_EXECUTOR.execute(new LoadDicomDir(loadSeries, dicomModel));
         } else {
             LOGGER.error("Cannot import DICOM from {}", file); //$NON-NLS-1$

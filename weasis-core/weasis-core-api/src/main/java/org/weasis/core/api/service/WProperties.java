@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.service;
 
@@ -21,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.weasis.core.api.gui.util.AppProperties;
 import org.weasis.core.api.util.GzipManager;
+import org.weasis.core.api.util.StringUtil;
 
 public class WProperties extends Properties {
     private static final long serialVersionUID = 3647479963645248145L;
@@ -86,7 +86,7 @@ public class WProperties extends Properties {
     }
 
     public void putIntProperty(String key, int value) {
-        if (isValid(key, value)) {
+        if (isKeyValid(key)) {
             this.put(key, String.valueOf(value));
         }
     }
@@ -107,7 +107,7 @@ public class WProperties extends Properties {
     }
 
     public void putLongProperty(String key, long value) {
-        if (isValid(key, value)) {
+        if (isKeyValid(key)) {
             this.put(key, String.valueOf(value));
         }
     }
@@ -138,9 +138,9 @@ public class WProperties extends Properties {
         if (isKeyValid(key)) {
             final String value = this.getProperty(key);
             if (value != null) {
-                if ("true".equalsIgnoreCase(value)) { //$NON-NLS-1$
+                if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {
                     result = true;
-                } else if ("false".equalsIgnoreCase(value)) { //$NON-NLS-1$
+                } else if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {
                     result = false;
                 }
             }
@@ -201,9 +201,13 @@ public class WProperties extends Properties {
     }
 
     public void putByteArrayProperty(String key, byte[] value) {
-        if (isValid(key, value)) {
+        if (isKeyValid(key)) {
             try {
-                this.put(key, Base64.getEncoder().encode(GzipManager.gzipCompressToByte(value)));
+                String val = StringUtil.EMPTY_STRING;
+                if(value != null && value.length > 0) {
+                    val = new String(Base64.getEncoder().encode(GzipManager.gzipCompressToByte(value)));
+                }
+                this.put(key, val);
             } catch (IOException e) {
                 LOGGER.error("Set byte property", e); //$NON-NLS-1$
             }
@@ -213,10 +217,10 @@ public class WProperties extends Properties {
     public byte[] getByteArrayProperty(String key, byte[] def) {
         byte[] result = def;
         if (isKeyValid(key)) {
-            Object value = this.get(key);
-            if (value instanceof byte[]) {
+            String value = this.getProperty(key);
+            if (StringUtil.hasText(value)) {
                 try {
-                    result = GzipManager.gzipUncompressToByte(Base64.getDecoder().decode((byte[]) value));
+                    result = GzipManager.gzipUncompressToByte(Base64.getDecoder().decode(value.getBytes()));
                 } catch (IOException e) {
                     LOGGER.error("Get byte property", e); //$NON-NLS-1$
                 }

@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.base.viewer2d;
 
@@ -126,9 +125,9 @@ public class InfoLayer extends AbstractInfoLayer<ImageElement> {
             if (window != null && level != null) {
                 sb.append(ActionW.WINLEVEL.getTitle());
                 sb.append(StringUtil.COLON_AND_SPACE);
-                sb.append(DecFormater.oneDecimal(window));
+                sb.append(DecFormater.allNumber(window));
                 sb.append("/");//$NON-NLS-1$
-                sb.append(DecFormater.oneDecimal(level));
+                sb.append(DecFormater.allNumber(level));
             }
             AbstractGraphicLabel.paintFontOutline(g2, sb.toString(), border, drawY);
             drawY -= fontHeight;

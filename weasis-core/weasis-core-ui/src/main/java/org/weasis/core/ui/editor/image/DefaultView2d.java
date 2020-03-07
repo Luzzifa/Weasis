@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.editor.image;
 
@@ -86,7 +85,7 @@ import org.weasis.core.api.image.ImageOpNode;
 import org.weasis.core.api.image.OpManager;
 import org.weasis.core.api.image.PseudoColorOp;
 import org.weasis.core.api.image.WindowOp;
-import org.weasis.core.api.image.op.ByteLut;
+import org.weasis.core.api.image.op.ByteLutCollection;
 import org.weasis.core.api.image.util.ImageFiler;
 import org.weasis.core.api.image.util.KernelData;
 import org.weasis.core.api.image.util.MeasurableLayer;
@@ -101,6 +100,7 @@ import org.weasis.core.api.util.FontTools;
 import org.weasis.core.api.util.LangUtil;
 import org.weasis.core.api.util.StringUtil;
 import org.weasis.core.ui.Messages;
+import org.weasis.core.ui.docking.DockableTool;
 import org.weasis.core.ui.docking.UIManager;
 import org.weasis.core.ui.editor.SeriesViewerEvent;
 import org.weasis.core.ui.editor.SeriesViewerEvent.EVENT;
@@ -110,6 +110,7 @@ import org.weasis.core.ui.model.AbstractGraphicModel;
 import org.weasis.core.ui.model.GraphicModel;
 import org.weasis.core.ui.model.graphic.DragGraphic;
 import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.GraphicSelectionListener;
 import org.weasis.core.ui.model.imp.XmlGraphicModel;
 import org.weasis.core.ui.model.layer.LayerAnnotation;
 import org.weasis.core.ui.model.layer.LayerType;
@@ -126,7 +127,8 @@ import org.weasis.core.ui.util.TitleMenuItem;
 import org.weasis.opencv.data.PlanarImage;
 
 /**
- * @author Nicolas Roduit, Benoit Jacquemoud
+ * @author Nicolas Roduit
+ * @author Benoit Jacquemoud
  */
 public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane implements ViewCanvas<E> {
     private static final long serialVersionUID = 4546307243696460899L;
@@ -246,7 +248,7 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
             eventManager.getZoomSetting().getInterpolation());
         disOp.setParamValue(AffineTransformOp.OP_NAME, AffineTransformOp.P_AFFINE_MATRIX, null);
         disOp.setParamValue(FilterOp.OP_NAME, FilterOp.P_KERNEL_DATA, KernelData.NONE);
-        disOp.setParamValue(PseudoColorOp.OP_NAME, PseudoColorOp.P_LUT, ByteLut.defaultLUT);
+        disOp.setParamValue(PseudoColorOp.OP_NAME, PseudoColorOp.P_LUT, ByteLutCollection.Lut.IMAGE.getByteLut());
         disOp.setParamValue(PseudoColorOp.OP_NAME, PseudoColorOp.P_LUT_INVERSE, false);
     }
 
@@ -613,7 +615,9 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
                     modelList = new XmlGraphicModel(img);
                     img.setTag(TagW.PresentationModel, modelList);
                 }
+                List<GraphicSelectionListener> gListeners = new ArrayList<>(graphicManager.getGraphicSelectionListeners());  
                 setGraphicManager(modelList);
+                gListeners.forEach(l -> graphicManager.addGraphicSelectionListener(l));
             }
 
             if (panner != null) {
@@ -622,6 +626,20 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
             if (lens != null) {
                 lens.updateImage();
                 lens.updateZoom();
+            }
+        }
+    }
+    
+    @Override
+    public void updateGraphicSelectionListener(ImageViewerPlugin<E> viewerPlugin) {
+        if (viewerPlugin != null) {
+            List<DockableTool> tools = viewerPlugin.getToolPanel();
+            synchronized (tools) {
+                for (DockableTool p : tools) {
+                    if (p instanceof GraphicSelectionListener) {
+                        graphicManager.addGraphicSelectionListener((GraphicSelectionListener) p);
+                    }
+                }
             }
         }
     }
@@ -740,8 +758,8 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
         // Only apply when the panel size is not zero.
         if (getWidth() != 0 && getHeight() != 0) {
             getViewModel().setModelOffset(modelOffsetX, modelOffsetY);
-            Optional.ofNullable(panner).ifPresent(p -> p.updateImageSize());
-            Optional.ofNullable(lens).ifPresent(l -> l.updateZoom());
+            Optional.ofNullable(panner).ifPresent(Panner<E>::updateImageSize);
+            Optional.ofNullable(lens).ifPresent(ZoomWin<E>::updateZoom);
             updateAffineTransform();
         }
     }
@@ -875,9 +893,6 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
     @Override
     public void drawLayers(Graphics2D g2d, AffineTransform transform, AffineTransform inverseTransform) {
         if ((Boolean) actionsInView.get(ActionW.DRAWINGS.cmd())) {
-            //TODO set clip bound
-//            double scale = viewModel.getViewScale();
-//            Rectangle2D b = new Rectangle2D.Double(viewModel.getModelOffsetX() * scale , viewModel.getModelOffsetY() * scale, getWidth(), getHeight());
             graphicManager.draw(g2d, transform, inverseTransform, null);
         }
     }
@@ -986,7 +1001,7 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
 
     @Override
     public void setDrawingsVisibility(Boolean visible) {
-        if ((Boolean) actionsInView.get(ActionW.DRAWINGS.cmd()) != visible) {
+        if (!Objects.equals(actionsInView.get(ActionW.DRAWINGS.cmd()), visible)) {
             actionsInView.put(ActionW.DRAWINGS.cmd(), visible);
             repaint();
         }
@@ -1245,7 +1260,7 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
         for (int i = 0; i < wheelListeners.length; i++) {
             this.removeMouseWheelListener(wheelListeners[i]);
         }
-        Optional.ofNullable(lens).ifPresent(l -> l.disableMouseAndKeyListener());
+        Optional.ofNullable(lens).ifPresent(ZoomWin<E>::disableMouseAndKeyListener);
     }
 
     @Override
@@ -1446,7 +1461,7 @@ public abstract class DefaultView2d<E extends ImageElement> extends GraphicsPane
         List<Action> list = new ArrayList<>();
 
         AbstractAction exportToClipboardAction =
-            new DefaultAction(Messages.getString("DefaultView2d.clipboard"), new ImageIcon(DefaultView2d.class.getResource("/icon/16x16/camera.png")), event -> { //$NON-NLS-1$
+            new DefaultAction(Messages.getString("DefaultView2d.clipboard"), new ImageIcon(DefaultView2d.class.getResource("/icon/16x16/camera.png")), event -> { //$NON-NLS-1$ //$NON-NLS-2$
                 final ViewTransferHandler imageTransferHandler = new ViewTransferHandler();
                 imageTransferHandler.exportToClipboard(DefaultView2d.this,
                     Toolkit.getDefaultToolkit().getSystemClipboard(), TransferHandler.COPY);

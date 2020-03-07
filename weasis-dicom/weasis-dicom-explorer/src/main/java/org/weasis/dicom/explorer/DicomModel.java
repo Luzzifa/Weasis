@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer;
 
@@ -25,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -57,6 +57,7 @@ import org.weasis.core.api.media.data.TagW;
 import org.weasis.core.api.media.data.Thumbnail;
 import org.weasis.core.api.service.BundleTools;
 import org.weasis.core.api.util.GzipManager;
+import org.weasis.core.api.util.StringUtil;
 import org.weasis.core.api.util.ThreadUtil;
 import org.weasis.core.ui.docking.UIManager;
 import org.weasis.core.ui.editor.SeriesViewerFactory;
@@ -78,6 +79,7 @@ import org.weasis.dicom.codec.display.Modality;
 import org.weasis.dicom.codec.utils.SplittingModalityRules;
 import org.weasis.dicom.codec.utils.SplittingModalityRules.Rule;
 import org.weasis.dicom.codec.utils.SplittingRules;
+import org.weasis.dicom.explorer.rs.RsQueryParams;
 import org.weasis.dicom.explorer.wado.DicomManager;
 import org.weasis.dicom.explorer.wado.DownloadManager;
 import org.weasis.dicom.explorer.wado.LoadRemoteDicomManifest;
@@ -86,6 +88,7 @@ import org.weasis.dicom.explorer.wado.LoadSeries;
 
 @org.osgi.service.component.annotations.Component(immediate = false, property = {
     CommandProcessor.COMMAND_SCOPE + "=dicom", CommandProcessor.COMMAND_FUNCTION + "=get",
+    CommandProcessor.COMMAND_FUNCTION + "=rs",
     CommandProcessor.COMMAND_FUNCTION + "=close" }, service = DicomModel.class)
 public class DicomModel implements TreeModel, DataExplorerModel {
     private static final Logger LOGGER = LoggerFactory.getLogger(DicomModel.class);
@@ -113,12 +116,12 @@ public class DicomModel implements TreeModel, DataExplorerModel {
     }
 
     @Override
-    public synchronized List<Codec> getCodecPlugins() {
+    public List<Codec> getCodecPlugins() {
         ArrayList<Codec> codecPlugins = new ArrayList<>(1);
         synchronized (BundleTools.CODEC_PLUGINS) {
             for (Codec codec : BundleTools.CODEC_PLUGINS) {
-                if (codec != null && "Sun java imageio".equals(codec.getCodecName()) == false //$NON-NLS-1$
-                    && codec.isMimeTypeSupported("application/dicom") && !codecPlugins.contains(codec)) { //$NON-NLS-1$
+                if (codec != null && !"Sun java imageio".equals(codec.getCodecName()) //$NON-NLS-1$
+                    && codec.isMimeTypeSupported(DicomMediaIO.DICOM_MIMETYPE) && !codecPlugins.contains(codec)) {
                     codecPlugins.add(codec);
                 }
             }
@@ -134,11 +137,9 @@ public class DicomModel implements TreeModel, DataExplorerModel {
     @Override
     public MediaSeriesGroup getHierarchyNode(MediaSeriesGroup parent, Object valueID) {
         if (parent != null || valueID != null) {
-            synchronized (model) {
-                for (MediaSeriesGroup node : getChildren(parent)) {
-                    if (node.matchIdValue(valueID)) {
-                        return node;
-                    }
+            for (MediaSeriesGroup node : getChildren(parent)) {
+                if (node.matchIdValue(valueID)) {
+                    return node;
                 }
             }
         }
@@ -177,12 +178,10 @@ public class DicomModel implements TreeModel, DataExplorerModel {
 
     public MediaSeriesGroup getStudyNode(String studyUID) {
         Objects.requireNonNull(studyUID);
-        synchronized (model) {
-            for (MediaSeriesGroup pt : getChildren(MediaSeriesGroupNode.rootNode)) {
-                for (MediaSeriesGroup st : getChildren(pt)) {
-                    if (st.matchIdValue(studyUID)) {
-                        return st;
-                    }
+        for (MediaSeriesGroup pt : getChildren(MediaSeriesGroupNode.rootNode)) {
+            for (MediaSeriesGroup st : getChildren(pt)) {
+                if (st.matchIdValue(studyUID)) {
+                    return st;
                 }
             }
         }
@@ -191,13 +190,11 @@ public class DicomModel implements TreeModel, DataExplorerModel {
 
     public MediaSeriesGroup getSeriesNode(String seriesUID) {
         Objects.requireNonNull(seriesUID);
-        synchronized (model) {
-            for (MediaSeriesGroup pt : getChildren(MediaSeriesGroupNode.rootNode)) {
-                for (MediaSeriesGroup st : getChildren(pt)) {
-                    for (MediaSeriesGroup item : getChildren(st)) {
-                        if (item.matchIdValue(seriesUID)) {
-                            return item;
-                        }
+        for (MediaSeriesGroup pt : getChildren(MediaSeriesGroupNode.rootNode)) {
+            for (MediaSeriesGroup st : getChildren(pt)) {
+                for (MediaSeriesGroup item : getChildren(st)) {
+                    if (item.matchIdValue(seriesUID)) {
+                        return item;
                     }
                 }
             }
@@ -207,18 +204,14 @@ public class DicomModel implements TreeModel, DataExplorerModel {
 
     @Override
     public void addHierarchyNode(MediaSeriesGroup root, MediaSeriesGroup leaf) {
-        synchronized (model) {
-            model.addLeaf(root, leaf);
-        }
+        model.addLeaf(root, leaf);
     }
 
     @Override
     public void removeHierarchyNode(MediaSeriesGroup root, MediaSeriesGroup leaf) {
-        synchronized (model) {
-            Tree<MediaSeriesGroup> tree = model.getTree(root);
-            if (tree != null) {
-                tree.removeLeaf(leaf);
-            }
+        Tree<MediaSeriesGroup> tree = model.getTree(root);
+        if (tree != null) {
+            tree.removeLeaf(leaf);
         }
     }
 
@@ -229,16 +222,14 @@ public class DicomModel implements TreeModel, DataExplorerModel {
             if (node.getTagID().equals(matchTagID)) {
                 return node;
             }
-            synchronized (model) {
-                Tree<MediaSeriesGroup> tree = model.getTree(node);
-                if (tree != null) {
-                    Tree<MediaSeriesGroup> parent;
-                    while ((parent = tree.getParent()) != null) {
-                        if (parent.getHead().getTagID().equals(matchTagID)) {
-                            return parent.getHead();
-                        }
-                        tree = parent;
+            Tree<MediaSeriesGroup> tree = model.getTree(node);
+            if (tree != null) {
+                Tree<MediaSeriesGroup> parent;
+                while ((parent = tree.getParent()) != null) {
+                    if (parent.getHead().getTagID().equals(matchTagID)) {
+                        return parent.getHead();
                     }
+                    tree = parent;
                 }
             }
         }
@@ -248,12 +239,10 @@ public class DicomModel implements TreeModel, DataExplorerModel {
     public void dispose() {
         removeAllPropertyChangeListener();
 
-        synchronized (model) {
-            for (MediaSeriesGroup pt : getChildren(MediaSeriesGroupNode.rootNode)) {
-                for (MediaSeriesGroup st : getChildren(pt)) {
-                    for (MediaSeriesGroup item : getChildren(st)) {
-                        item.dispose();
-                    }
+        for (MediaSeriesGroup pt : getChildren(MediaSeriesGroupNode.rootNode)) {
+            for (MediaSeriesGroup st : getChildren(pt)) {
+                for (MediaSeriesGroup item : getChildren(st)) {
+                    item.dispose();
                 }
             }
         }
@@ -673,7 +662,6 @@ public class DicomModel implements TreeModel, DataExplorerModel {
     private void splitSeries(DicomMediaIO dicomReader, Series original, MediaElement media) {
         Series s = splitSeries(dicomReader, original);
         s.addMedia(media);
-        LOGGER.info("Series splitting: {}", s); //$NON-NLS-1$
     }
 
     private Series splitSeries(DicomMediaIO dicomReader, Series original) {
@@ -773,7 +761,7 @@ public class DicomModel implements TreeModel, DataExplorerModel {
         if (t == null) {
             t = DicomExplorer.createThumbnail(dicomSeries, this, Thumbnail.DEFAULT_SIZE);
             dicomSeries.setTag(TagW.Thumbnail, t);
-            Optional.ofNullable(t).ifPresent(v -> v.repaint());
+            Optional.ofNullable(t).ifPresent(Thumbnail::repaint);
         }
         firePropertyChange(new ObservableEvent(ObservableEvent.BasicAction.ADD, this, null, dicomSeries));
     }
@@ -806,7 +794,7 @@ public class DicomModel implements TreeModel, DataExplorerModel {
                     if (specialElementList == null) {
                         specialElementList = new CopyOnWriteArrayList<>();
                         initialSeries.setTag(TagW.DicomSpecialElementList, specialElementList);
-                    } else if ("sr/dicom".equals(rMime) || "wf/dicom".equals(rMime)) { //$NON-NLS-1$
+                    } else if ("sr/dicom".equals(rMime) || "wf/dicom".equals(rMime)) { //$NON-NLS-1$ //$NON-NLS-2$
                         // Split SR series to have only one object by series
                         Series s = splitSeries(dicomReader, initialSeries);
                         specialElementList = new CopyOnWriteArrayList<>();
@@ -943,21 +931,24 @@ public class DicomModel implements TreeModel, DataExplorerModel {
 
     public void get(String[] argv) throws IOException {
         final String[] usage = { "Load DICOM files remotely or locally", //$NON-NLS-1$
-            "Usage: dicom:get ([-l PATH]... [-r URI]... [-p] [-i DATA]... [-w URI]...)", //$NON-NLS-1$
+            "Usage: dicom:get ([-l PATH]... [-w URI]... [-r URI]... [-p] [-i DATA]... [-z URI]...)", //$NON-NLS-1$
             "PATH is either a directory(recursive) or a file", "  -l --local=PATH   open DICOMs from local disk", //$NON-NLS-1$ //$NON-NLS-2$
             "  -r --remote=URI   open DICOMs from an URI", //$NON-NLS-1$
+            "  -w --wado=URI     open DICOMs from an XML manifest", "  -z --zip=URI      open DICOM ZIP from an URI",  //$NON-NLS-1$//$NON-NLS-2$
             "  -p --portable     open DICOMs from configured directories at the same level of the executable", //$NON-NLS-1$
             "  -i --iwado=DATA   open DICOMs from an XML manifest (GZIP-Base64)", //$NON-NLS-1$
-            "  -w --wado=URI     open DICOMs from an XML manifest", "  -? --help         show help" }; //$NON-NLS-1$//$NON-NLS-2$
+            "  -? --help         show help" }; //$NON-NLS-1$
 
         final Option opt = Options.compile(usage).parse(argv);
         final List<String> largs = opt.getList("local"); //$NON-NLS-1$
         final List<String> rargs = opt.getList("remote"); //$NON-NLS-1$
+        final List<String> zargs = opt.getList("zip"); //$NON-NLS-1$
         final List<String> iargs = opt.getList("iwado"); //$NON-NLS-1$
         final List<String> wargs = opt.getList("wado"); //$NON-NLS-1$
 
         if (opt.isSet("help") //$NON-NLS-1$
-            || (largs.isEmpty() && rargs.isEmpty() && iargs.isEmpty() && wargs.isEmpty() && !opt.isSet("portable"))) { //$NON-NLS-1$
+            || (largs.isEmpty() && rargs.isEmpty() && iargs.isEmpty() && wargs.isEmpty() && zargs.isEmpty()
+                && !opt.isSet("portable"))) { //$NON-NLS-1$
             opt.usage();
             return;
         }
@@ -965,12 +956,12 @@ public class DicomModel implements TreeModel, DataExplorerModel {
         GuiExecutor.instance().execute(() -> {
             firePropertyChange(
                 new ObservableEvent(ObservableEvent.BasicAction.SELECT, DicomModel.this, null, DicomModel.this));
-            getCommand(opt, largs, rargs, iargs, wargs);
+            getCommand(opt, largs, rargs, iargs, wargs, zargs);
         });
     }
 
-    private void getCommand(Option opt, List<String> largs, List<String> rargs, List<String> iargs,
-        List<String> wargs) {
+    private void getCommand(Option opt, List<String> largs, List<String> rargs, List<String> iargs, List<String> wargs,
+        List<String> zargs) {
         // start importing local dicom series list
         if (opt.isSet("local")) { //$NON-NLS-1$
             File[] files = new File[largs.size()];
@@ -987,6 +978,12 @@ public class DicomModel implements TreeModel, DataExplorerModel {
         // build WADO series list to download
         if (opt.isSet("wado")) { //$NON-NLS-1$
             LOADING_EXECUTOR.execute(new LoadRemoteDicomManifest(wargs, DicomModel.this));
+        }
+
+        if (opt.isSet("zip")) { //$NON-NLS-1$
+            for (String zip : zargs) {
+                DicomZipImport.loadDicomZip(zip, DicomModel.this);
+            }
         }
 
         if (opt.isSet("iwado")) { //$NON-NLS-1$
@@ -1047,6 +1044,68 @@ public class DicomModel implements TreeModel, DataExplorerModel {
                 }
             }
         }
+    }
+
+    public void rs(String[] argv) throws IOException {
+        final String[] usage = { "Load DICOM files from DICOMWeb API (QIDO/WADO-RS)", //$NON-NLS-1$
+            "Usage: dicom:rs -u URL -r QUERYPARAMS... [-H HEADER]... [--query-header HEADER]... [--retrieve-header HEADER]... [--query-ext EXT] [--retrieve-ext EXT] [--accept-ext EXT]", //$NON-NLS-1$
+            "  -u --url=URL               URL of the DICOMWeb service", //$NON-NLS-1$
+            "  -r --request=QUERYPARAMS   Query params of the URL, see weasis-pacs-connector", //$NON-NLS-1$
+            "  -H --header=HEADER         Pass custom header(s) to all the requests", //$NON-NLS-1$
+            "  --query-header=HEADER      Pass custom header(s) to the query requests (QIDO)", //$NON-NLS-1$
+            "  --retrieve-header=HEADER   Pass custom header(s) to the retrieve requests (WADO)", //$NON-NLS-1$
+            "  --query-ext=EXT            Additionnal parameters for Query URL (QIDO)", //$NON-NLS-1$
+            "  --retrieve-ext=EXT         Additionnal parameters for Retrieve URL (WADO)", //$NON-NLS-1$
+            "  --accept-ext=EXT           Additionnal parameters for DICOM multipart/related Accept header of the retrieve URL (WADO). Default value is: transfer-syntax=*", //$NON-NLS-1$
+            "  --show-whole-study         when downloading a series, show all the other series (ready for download) from the same study", //$NON-NLS-1$
+            "  -? --help                  show help" }; //$NON-NLS-1$
+
+        final Option opt = Options.compile(usage).parse(argv);
+        final String rsUrl = opt.get("url"); //$NON-NLS-1$
+        final List<String> pargs = opt.getList("request"); //$NON-NLS-1$
+
+        if (opt.isSet("help") || rsUrl.isEmpty() //$NON-NLS-1$
+            || (pargs.isEmpty())) {
+            opt.usage();
+            return;
+        }
+
+        Properties props = new Properties();
+        props.setProperty(RsQueryParams.P_DICOMWEB_URL, rsUrl);
+        String queryExt = opt.get("query-ext"); //$NON-NLS-1$
+        if (StringUtil.hasText(queryExt)) {
+            props.setProperty(RsQueryParams.P_QUERY_EXT, queryExt);
+        }
+        String retrieveExt = opt.get("retrieve-ext"); //$NON-NLS-1$
+        if (StringUtil.hasText(retrieveExt)) {
+            props.setProperty(RsQueryParams.P_RETRIEVE_EXT, retrieveExt);
+        }
+
+        String acceptExt = opt.get("accept-ext"); //$NON-NLS-1$
+        if (!StringUtil.hasText(acceptExt)) {
+            acceptExt = "transfer-syntax=*"; //$NON-NLS-1$
+        }
+        props.setProperty(RsQueryParams.P_ACCEPT_EXT, acceptExt);
+        
+        if (opt.isSet("show-whole-study")) { //$NON-NLS-1$
+            props.setProperty(RsQueryParams.P_SHOW_WHOLE_STUDY, Boolean.TRUE.toString());
+        }
+
+        GuiExecutor.instance().execute(() -> {
+            firePropertyChange(
+                new ObservableEvent(ObservableEvent.BasicAction.SELECT, DicomModel.this, null, DicomModel.this));
+            for (String query : pargs) {
+                List<String> common = opt.getList("header"); //$NON-NLS-1$
+                List<String> q = opt.getList("query-header"); //$NON-NLS-1$
+                q.addAll(common);
+                List<String> r = opt.getList("retrieve-header"); //$NON-NLS-1$
+                r.addAll(common);
+                RsQueryParams rsquery = new RsQueryParams(DicomModel.this, props, RsQueryParams.getQueryMap(query),
+                    RsQueryParams.getHeaders(q), RsQueryParams.getHeaders(r));
+                LOADING_EXECUTOR.execute(rsquery);
+            }
+        });
+
     }
 
     public void close(String[] argv) throws IOException {

@@ -1,17 +1,17 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.launcher;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,11 +22,18 @@ import javax.jnlp.SingleInstanceListener;
 import javax.jnlp.SingleInstanceService;
 import javax.jnlp.UnavailableServiceException;
 
+import org.apache.felix.framework.util.FelixConstants;
+
+@Deprecated
 public class WebstartLauncher extends WeasisLauncher implements SingleInstanceListener {
     private static final Logger LOGGER = Logger.getLogger(WebstartLauncher.class.getName());
 
+    static {
+        setJnlpSystemProperties();
+    }
+    
     private static final WebstartLauncher instance = new WebstartLauncher();
-
+    
     static {
         try {
             SingleInstanceService singleInstanceService =
@@ -56,6 +63,11 @@ public class WebstartLauncher extends WeasisLauncher implements SingleInstanceLi
         for (Object provider : toRemove) {
             registry.deregisterServiceProvider(provider);
         }
+
+    }
+
+    public WebstartLauncher() {
+        super(new ConfigData());
     }
 
     @Override
@@ -76,16 +88,35 @@ public class WebstartLauncher extends WeasisLauncher implements SingleInstanceLi
                 }
             }
         }
-        if (m_tracker != null && argv.length > 0) {
-            executeCommands(splitCommand(argv), null);
+        if (mTracker != null) {
+            ConfigData data = new ConfigData(argv);
+            executeCommands(data.getArguments(), null);
         }
     }
 
-    public static void launch(String[] argv) throws Exception {
-        WeasisLauncher.launch(argv);
+    public static void main(String[] argv) throws Exception {
+        instance.configData.init(argv);
+        // Remove the prefix "jnlp.weasis" of JNLP Properties
+        // Workaround for having a fully trusted application with JWS,
+        // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6653241
+        instance.launch(Type.JWS);
     }
 
-    public static void main(String[] argv) throws Exception {
-        launch(argv);
+    private static void setJnlpSystemProperties() {
+        final String PREFIX = "jnlp.weasis."; //$NON-NLS-1$
+        final int PREFIX_LENGTH = PREFIX.length();
+
+        Properties properties = System.getProperties();
+        for (String propertyName : properties.stringPropertyNames()) {
+            if (propertyName.startsWith(PREFIX)) {
+                String value = properties.getProperty(propertyName);
+                System.setProperty(propertyName.substring(PREFIX_LENGTH), value);
+                properties.remove(propertyName);
+            }
+        }
+
+        // Disabling extension framework is mandatory to work with Java Web Start.
+        // From framework 4.4.1, See https://issues.apache.org/jira/browse/FELIX-4281.
+        System.setProperty(FelixConstants.FELIX_EXTENSIONS_DISABLE, Boolean.TRUE.toString());
     }
 }

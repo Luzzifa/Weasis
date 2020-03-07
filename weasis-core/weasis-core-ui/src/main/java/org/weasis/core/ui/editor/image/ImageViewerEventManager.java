@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.editor.image;
 
@@ -21,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.swing.BoundedRangeModel;
@@ -72,7 +72,7 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
     protected final HashMap<ActionW, ActionState> actions = new HashMap<>();
 
     protected volatile boolean enabledAction = true;
-    protected volatile ImageViewerPlugin<E> selectedView2dContainer;
+    protected ImageViewerPlugin<E> selectedView2dContainer;
 
     public ImageViewerEventManager() {
         super();
@@ -140,8 +140,8 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
 
             class CineThread extends Thread {
 
-                private volatile int iteration;
-                private volatile int wait;
+                private AtomicInteger iteration;
+                private AtomicInteger wait;
                 private volatile int currentCineRate;
                 private volatile long start;
                 private final int timeDiv =
@@ -157,27 +157,26 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
                             frameIndex = frameIndex > getSliderMax() ? 0 : frameIndex;
                             setSliderValue(frameIndex);
                         });
-                        iteration++;
+                        iteration.incrementAndGet();
 
                         // adjust the delay time based on the current performance
                         long elapsed = (System.currentTimeMillis() - start) / 1000;
                         if (elapsed > 0) {
-                            currentCineRate = (int) (iteration / elapsed);
+                            currentCineRate = (int) (iteration.get() / elapsed);
 
                             if (currentCineRate < getSpeed()) {
-                                wait--;
+                                if (wait.decrementAndGet() < 0) {
+                                    wait.set(0);
+                                }
                             } else {
-                                wait++;
-                            }
-                            if (wait < 0) {
-                                wait = 0;
+                                wait.incrementAndGet();
                             }
                         }
 
                         // wait
-                        if (wait > 0) {
+                        if (wait.get() > 0) {
                             try {
-                                Thread.sleep(wait);
+                                Thread.sleep(wait.get());
                             } catch (Exception e) {
                             }
                         }
@@ -185,8 +184,8 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
                 }
 
                 public void iniSpeed() {
-                    iteration = 0;
-                    wait = timeDiv / getSpeed();
+                    iteration = new AtomicInteger(0);
+                    wait = new AtomicInteger(timeDiv / getSpeed());
                     currentCineRate = getSpeed();
                     start = System.currentTimeMillis();
                 }
@@ -252,6 +251,10 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
             public void stateChanged(BoundedRangeModel model) {
                 firePropertyChange(ActionW.SYNCH.cmd(), null,
                     new SynchEvent(getSelectedViewPane(), getActionW().cmd(), toModelValue(model.getValue())));
+                if (selectedView2dContainer != null) {
+                    fireSeriesViewerListeners(
+                        new SeriesViewerEvent(selectedView2dContainer, null, null, EVENT.WIN_LEVEL));
+                }
             }
         };
     }
@@ -263,6 +266,10 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
             public void stateChanged(BoundedRangeModel model) {
                 firePropertyChange(ActionW.SYNCH.cmd(), null,
                     new SynchEvent(getSelectedViewPane(), getActionW().cmd(), toModelValue(model.getValue())));
+                if (selectedView2dContainer != null) {
+                    fireSeriesViewerListeners(
+                        new SeriesViewerEvent(selectedView2dContainer, null, null, EVENT.WIN_LEVEL));
+                }
             }
         };
     }
@@ -356,6 +363,10 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
             public void actionPerformed(boolean selected) {
                 firePropertyChange(ActionW.SYNCH.cmd(), null,
                     new SynchEvent(getSelectedViewPane(), action.cmd(), selected));
+                if (selectedView2dContainer != null) {
+                    fireSeriesViewerListeners(
+                        new SeriesViewerEvent(selectedView2dContainer, null, null, EVENT.LUT));
+                }
             }
         };
     }
@@ -614,10 +625,10 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
             ViewerToolBar<E> toolBar = view.getViewerToolBar();
             if (toolBar != null) {
                 MouseActions mActions = getMouseActions();
-                if (!command.equals(mActions.getAction(MouseActions.LEFT))) {
-                    mActions.setAction(MouseActions.LEFT, command);
+                if (!command.equals(mActions.getAction(MouseActions.T_LEFT))) {
+                    mActions.setAction(MouseActions.T_LEFT, command);
                     view.setMouseActions(mActions);
-                    toolBar.changeButtonState(MouseActions.LEFT, command);
+                    toolBar.changeButtonState(MouseActions.T_LEFT, command);
                 }
             }
         }
@@ -755,9 +766,9 @@ public abstract class ImageViewerEventManager<E extends ImageElement> implements
                             final ViewerToolBar<?> toolBar = view.getViewerToolBar();
                             if (toolBar != null) {
                                 if (!toolBar.isCommandActive(cmd)) {
-                                    mouseActions.setAction(MouseActions.LEFT, cmd);
+                                    mouseActions.setAction(MouseActions.T_LEFT, cmd);
                                     view.setMouseActions(mouseActions);
-                                    toolBar.changeButtonState(MouseActions.LEFT, cmd);
+                                    toolBar.changeButtonState(MouseActions.T_LEFT, cmd);
                                 }
                             }
                         }

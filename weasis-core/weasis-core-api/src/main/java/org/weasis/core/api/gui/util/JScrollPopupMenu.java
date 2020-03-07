@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.gui.util;
 
@@ -17,10 +16,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.LayoutManager;
-import java.awt.event.AdjustmentEvent;
-import java.awt.event.AdjustmentListener;
 import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
 
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollBar;
@@ -39,29 +35,23 @@ public class JScrollPopupMenu extends JPopupMenu {
         setLayout(new ScrollPopupMenuLayout());
 
         super.add(getScrollBar());
-        addMouseWheelListener(new MouseWheelListener() {
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent event) {
-                JScrollBar scrollBar = getScrollBar();
-                int amount = (event.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL)
-                    ? event.getUnitsToScroll() * scrollBar.getUnitIncrement()
-                    : (event.getWheelRotation() < 0 ? -1 : 1) * scrollBar.getBlockIncrement();
+        addMouseWheelListener(event -> {
+            JScrollBar scrollBar = getScrollBar();
+            int amount = (event.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL)
+                ? event.getUnitsToScroll() * scrollBar.getUnitIncrement()
+                : (event.getWheelRotation() < 0 ? -1 : 1) * scrollBar.getBlockIncrement();
 
-                scrollBar.setValue(scrollBar.getValue() + amount);
-                event.consume();
-            }
+            scrollBar.setValue(scrollBar.getValue() + amount);
+            event.consume();
         });
     }
 
     protected JScrollBar getScrollBar() {
         if (popupScrollBar == null) {
             popupScrollBar = new JScrollBar(Adjustable.VERTICAL);
-            popupScrollBar.addAdjustmentListener(new AdjustmentListener() {
-                @Override
-                public void adjustmentValueChanged(AdjustmentEvent e) {
-                    doLayout();
-                    repaint();
-                }
+            popupScrollBar.addAdjustmentListener(e -> {
+                doLayout();
+                repaint();
             });
 
             popupScrollBar.setVisible(false);

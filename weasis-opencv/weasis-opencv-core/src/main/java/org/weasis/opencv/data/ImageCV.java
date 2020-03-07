@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.opencv.data;
 
@@ -73,6 +72,7 @@ public class ImageCV extends Mat implements PlanarImage {
     }
 
     // TODO remove for Java 8
+    @Override
     public Mat toMat() {
         if (this instanceof Mat) {
             return this;
@@ -81,6 +81,7 @@ public class ImageCV extends Mat implements PlanarImage {
         }
     }
 
+    @Override
     public ImageCV toImageCV() {
         if (this instanceof Mat) {
             if (this instanceof ImageCV) {
@@ -92,6 +93,11 @@ public class ImageCV extends Mat implements PlanarImage {
         } else {
             throw new IllegalAccessError("Not implemented yet");
         }
+    }
+
+    @Override
+    public void close() {
+        this.release();
     }
 
 }

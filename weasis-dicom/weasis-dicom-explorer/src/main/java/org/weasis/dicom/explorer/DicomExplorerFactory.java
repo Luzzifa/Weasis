@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer;
 
@@ -17,8 +16,10 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Deactivate;
 import org.weasis.core.api.explorer.DataExplorerView;
 import org.weasis.core.api.explorer.DataExplorerViewFactory;
+import org.weasis.core.api.explorer.ObservableEvent;
 import org.weasis.core.api.explorer.model.DataExplorerModel;
 import org.weasis.core.ui.docking.UIManager;
+import org.weasis.core.ui.editor.ViewerPluginBuilder;
 
 @org.osgi.service.component.annotations.Component(service = DataExplorerViewFactory.class, immediate = false)
 public class DicomExplorerFactory implements DataExplorerViewFactory {
@@ -35,6 +36,8 @@ public class DicomExplorerFactory implements DataExplorerViewFactory {
             model.addPropertyChangeListener(explorer);
             UIManager.EXPLORER_PLUGIN_TOOLBARS.add(new ImportToolBar(5, explorer));
             UIManager.EXPLORER_PLUGIN_TOOLBARS.add(new ExportToolBar(7, explorer));
+            ViewerPluginBuilder.DefaultDataModel.firePropertyChange(
+                new ObservableEvent(ObservableEvent.BasicAction.NULL_SELECTION, explorer, null, null));
         }
         return explorer;
     }

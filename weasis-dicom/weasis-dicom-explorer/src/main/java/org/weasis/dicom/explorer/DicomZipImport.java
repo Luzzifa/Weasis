@@ -1,18 +1,18 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer;
 
 import java.awt.FlowLayout;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 
 import javax.swing.JButton;
@@ -26,7 +26,12 @@ import org.slf4j.LoggerFactory;
 import org.weasis.core.api.gui.util.AbstractItemDialogPage;
 import org.weasis.core.api.gui.util.AppProperties;
 import org.weasis.core.api.gui.util.FileFormatFilter;
+import org.weasis.core.api.service.BundleTools;
+import org.weasis.core.api.util.ClosableURLConnection;
 import org.weasis.core.api.util.FileUtil;
+import org.weasis.core.api.util.NetworkUtil;
+import org.weasis.core.api.util.StringUtil;
+import org.weasis.core.api.util.URLParameters;
 import org.weasis.dicom.explorer.internal.Activator;
 import org.weasis.dicom.explorer.wado.LoadSeries;
 
@@ -67,7 +72,6 @@ public class DicomZipImport extends AbstractItemDialogPage implements ImportDico
         if (fileChooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION
             || (selectedFile = fileChooser.getSelectedFile()) == null) {
             fileLabel.setText(""); //$NON-NLS-1$
-            return;
         } else {
             Activator.IMPORT_EXPORT_PERSISTENCE.setProperty(lastDICOMDIR, selectedFile.getParent());
             fileLabel.setText(selectedFile.getPath());
@@ -107,29 +111,46 @@ public class DicomZipImport extends AbstractItemDialogPage implements ImportDico
     }
 
     public static void loadDicomZip(File file, DicomModel dicomModel) {
-        if (file != null) {
-            if (file.canRead()) {
-                File dir = FileUtil.createTempDir(AppProperties.buildAccessibleTempDirectory("tmp", "zip")); //$NON-NLS-1$ //$NON-NLS-2$
-                try {
-                    FileUtil.unzip(file, dir);
-                } catch (IOException e) {
-                    LOGGER.error("", e); //$NON-NLS-1$
-                }
-                File dicomdir = new File(dir, "DICOMDIR"); //$NON-NLS-1$
-                if (dicomdir.canRead()) {
-                    DicomDirLoader dirImport = new DicomDirLoader(dicomdir, dicomModel, false); // $NON-NLS-1$
-                    List<LoadSeries> loadSeries = dirImport.readDicomDir();
-                    if (loadSeries != null && !loadSeries.isEmpty()) {
-                        DicomModel.LOADING_EXECUTOR.execute(new LoadDicomDir(loadSeries, dicomModel));
-                    } else {
-                        LOGGER.error("Cannot import DICOM from {}", file); //$NON-NLS-1$
-                    }
+        if (file != null && file.canRead()) {
+            File dir = FileUtil.createTempDir(AppProperties.buildAccessibleTempDirectory("tmp", "zip")); //$NON-NLS-1$ //$NON-NLS-2$
+            try {
+                FileUtil.unzip(file, dir);
+            } catch (IOException e) {
+                LOGGER.error("unzipping", e); //$NON-NLS-1$
+            }
+            File dicomdir = new File(dir, "DICOMDIR"); //$NON-NLS-1$
+            if (dicomdir.canRead()) {
+                DicomDirLoader dirImport = new DicomDirLoader(dicomdir, dicomModel, false); // $NON-NLS-1$
+                List<LoadSeries> loadSeries = dirImport.readDicomDir();
+                if (loadSeries != null && !loadSeries.isEmpty()) {
+                    DicomModel.LOADING_EXECUTOR.execute(new LoadDicomDir(loadSeries, dicomModel));
                 } else {
-                    LoadLocalDicom dicom = new LoadLocalDicom(new File[] { dir }, true, dicomModel);
-                    DicomModel.LOADING_EXECUTOR.execute(dicom);
+                    LOGGER.error("Cannot import DICOM from {}", file); //$NON-NLS-1$
                 }
+            } else {
+                LoadLocalDicom dicom = new LoadLocalDicom(new File[] { dir }, true, dicomModel);
+                DicomModel.LOADING_EXECUTOR.execute(dicom);
             }
         }
     }
 
+    public static void loadDicomZip(String uri, DicomModel dicomModel) {
+        if (StringUtil.hasText(uri)) {
+            File tempFile = null;
+            try {
+                URI u = new URI(uri);
+                if (u.toString().startsWith("file:")) { //$NON-NLS-1$
+                    tempFile = new File(u.getPath());
+                } else {
+                    tempFile = File.createTempFile("dicom_", ".zip", AppProperties.APP_TEMP_DIR); //$NON-NLS-1$ //$NON-NLS-2$
+                    ClosableURLConnection urlConnection =
+                        NetworkUtil.getUrlConnection(u.toURL(), new URLParameters(BundleTools.SESSION_TAGS_FILE));
+                    FileUtil.writeStreamWithIOException(urlConnection.getInputStream(), tempFile);
+                }
+            } catch (Exception e) {
+                LOGGER.error("Loading DICOM Zip", e); //$NON-NLS-1$
+            }
+            loadDicomZip(tempFile, dicomModel);
+        }
+    }
 }

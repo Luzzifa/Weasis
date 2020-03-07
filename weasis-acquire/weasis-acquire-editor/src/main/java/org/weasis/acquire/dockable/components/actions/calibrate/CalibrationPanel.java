@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.acquire.dockable.components.actions.calibrate;
 
@@ -47,9 +46,9 @@ public class CalibrationPanel extends AbstractAcquireActionPanel {
                 MouseActions mouseActions = EventManager.getInstance().getMouseActions();
                 if (!cmd.equals(mouseActions.getLeft())) {
                     setLastActionCommand(mouseActions.getLeft());
-                    mouseActions.setAction(MouseActions.LEFT, cmd);
+                    mouseActions.setAction(MouseActions.T_LEFT, cmd);
                     container.setMouseActions(mouseActions);
-                    toolBar.changeButtonState(MouseActions.LEFT, cmd);
+                    toolBar.changeButtonState(MouseActions.T_LEFT, cmd);
                 }
             }
         }

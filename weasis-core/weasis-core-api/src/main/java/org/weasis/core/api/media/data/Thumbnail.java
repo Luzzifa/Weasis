@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.media.data;
 
@@ -77,7 +76,7 @@ public class Thumbnail extends JLabel implements Thumbnailable {
         };
 
     protected volatile boolean readable = true;
-    protected volatile AtomicBoolean loading = new AtomicBoolean(false);
+    protected AtomicBoolean loading = new AtomicBoolean(false);
     protected File thumbnailPath = null;
     protected int thumbnailSize;
 
@@ -142,9 +141,9 @@ public class Thumbnail extends JLabel implements Thumbnailable {
                     type = Messages.getString("Thumbnail.pdf"); //$NON-NLS-1$
                     icon = MimeInspector.pdfIcon;
                 } else if (mime.equals("wf/dicom")) { //$NON-NLS-1$
-                    type = "ECG";
+                    type = "ECG"; //$NON-NLS-1$
                     icon = MimeInspector.ecgIcon;
-                } else if (mime.startsWith("audio") || mime.equals("au/dicom")) { //$NON-NLS-1$
+                } else if (mime.startsWith("audio") || mime.equals("au/dicom")) { //$NON-NLS-1$ //$NON-NLS-2$
                     type = Messages.getString("Thumbnail.audio"); //$NON-NLS-1$
                     icon = MimeInspector.audioIcon;
                 } else {
@@ -266,7 +265,7 @@ public class Thumbnail extends JLabel implements Thumbnailable {
                         }
                         try {
                             if (thumb != null && file != null) {
-                                MatOfInt map = new MatOfInt(Imgcodecs.CV_IMWRITE_JPEG_QUALITY, 80);
+                                MatOfInt map = new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 80);
                                 if (ImageProcessor.writeImage(thumb.toMat(), file, map)) {
                                     /*
                                      * Write the thumbnail in temp folder, better than getting the thumbnail directly
@@ -284,6 +283,7 @@ public class Thumbnail extends JLabel implements Thumbnailable {
 
                             if (thumb == null || thumb.width() <= 0) {
                                 readable = false;
+                                ImageConversion.releasePlanarImage(thumb);
                             } else {
                                 mCache.put(this, thumb);
                             }

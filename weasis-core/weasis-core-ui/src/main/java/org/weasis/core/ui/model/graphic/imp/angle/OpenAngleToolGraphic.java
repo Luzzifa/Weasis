@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.model.graphic.imp.angle;
 
@@ -250,8 +249,8 @@ public class OpenAngleToolGraphic extends AbstractDragGraphic {
                 lineABP = new Point2D[3]; // order can be ABP (r>1) or BAP (r<0) or APB / BPA (0<=r<=1)
                 lineCDP = new Point2D[3]; // order can be CDP (s>1) or DCP (s<0) or CPD / DPC (0<=s<=1)
 
-                intersectABsegment = (r >= 0 && r <= 1) ? true : false; // means lineABP[1].equals(P)
-                intersectCDsegment = (s >= 0 && s <= 1) ? true : false; // means lineCDP[1].equals(P)
+                intersectABsegment = (r >= 0 && r <= 1); // means lineABP[1].equals(P)
+                intersectCDsegment = (s >= 0 && s <= 1); // means lineCDP[1].equals(P)
 
                 lineABP[0] = r >= 0 ? ptA : ptB;
                 lineABP[1] = r < 0 ? ptA : r > 1 ? ptB : ptP;

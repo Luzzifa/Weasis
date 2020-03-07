@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.base.viewer2d;
 
@@ -58,7 +57,6 @@ import org.weasis.core.api.service.BundlePreferences;
 import org.weasis.core.api.service.BundleTools;
 import org.weasis.core.api.util.LangUtil;
 import org.weasis.core.api.util.ResourceUtil;
-import org.weasis.core.ui.docking.DockableTool;
 import org.weasis.core.ui.editor.SeriesViewerEvent;
 import org.weasis.core.ui.editor.SeriesViewerEvent.EVENT;
 import org.weasis.core.ui.editor.image.DefaultView2d;
@@ -70,7 +68,6 @@ import org.weasis.core.ui.editor.image.SynchView;
 import org.weasis.core.ui.editor.image.ViewCanvas;
 import org.weasis.core.ui.editor.image.ZoomToolBar;
 import org.weasis.core.ui.model.graphic.Graphic;
-import org.weasis.core.ui.model.graphic.GraphicSelectionListener;
 import org.weasis.core.ui.util.ColorLayerUI;
 import org.weasis.core.ui.util.PrintDialog;
 
@@ -171,10 +168,10 @@ public class EventManager extends ImageViewerEventManager<ImageElement> implemen
 
     private ComboItemListener<ByteLut> newLutAction() {
         List<ByteLut> luts = new ArrayList<>();
-        luts.add(ByteLut.grayLUT);
+        luts.add(ByteLutCollection.Lut.GRAY.getByteLut());
         ByteLutCollection.readLutFilesFromResourcesDir(luts, ResourceUtil.getResource("luts"));//$NON-NLS-1$
         // Set default first as the list has been sorted
-        luts.add(0, ByteLut.defaultLUT);
+        luts.add(0, ByteLutCollection.Lut.IMAGE.getByteLut());
 
         return new ComboItemListener<ByteLut>(ActionW.LUT, luts.toArray(new ByteLut[luts.size()])) {
             @Override
@@ -182,6 +179,10 @@ public class EventManager extends ImageViewerEventManager<ImageElement> implemen
                 if (object instanceof ByteLut) {
                     firePropertyChange(ActionW.SYNCH.cmd(), null,
                         new SynchEvent(getSelectedViewPane(), action.cmd(), object));
+                    if (selectedView2dContainer != null) {
+                        fireSeriesViewerListeners(
+                            new SeriesViewerEvent(selectedView2dContainer, null, null, EVENT.LUT));
+                    }
                 }
             }
         };
@@ -243,7 +244,7 @@ public class EventManager extends ImageViewerEventManager<ImageElement> implemen
     public void setSelectedView2dContainer(ImageViewerPlugin<ImageElement> selectedView2dContainer) {
         if (this.selectedView2dContainer != null) {
             this.selectedView2dContainer.setMouseActions(null);
-            getAction(ActionW.SCROLL_SERIES, SliderCineListener.class).ifPresent(a -> a.stop());
+            getAction(ActionW.SCROLL_SERIES, SliderCineListener.class).ifPresent(SliderCineListener::stop);
         }
 
         ImageViewerPlugin<ImageElement> oldContainer = this.selectedView2dContainer;
@@ -431,14 +432,7 @@ public class EventManager extends ImageViewerEventManager<ImageElement> implemen
         updateAllListeners(selectedView2dContainer,
             synchAtction == null ? SynchView.NONE : (SynchView) synchAtction.getSelectedItem());
 
-        List<DockableTool> tools = selectedView2dContainer.getToolPanel();
-        synchronized (tools) {
-            for (DockableTool p : tools) {
-                if (p instanceof GraphicSelectionListener) {
-                    view2d.getGraphicManager().addGraphicSelectionListener((GraphicSelectionListener) p);
-                }
-            }
-        }
+        view2d.updateGraphicSelectionListener(selectedView2dContainer);
 
         return true;
     }

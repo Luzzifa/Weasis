@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer.wado;
 
@@ -14,43 +13,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.dcm4che3.data.Tag;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.service.prefs.Preferences;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.weasis.core.api.media.data.TagView;
-import org.weasis.core.api.service.BundlePreferences;
 import org.weasis.dicom.codec.TagD;
-import org.weasis.dicom.codec.TransferSyntax;
 import org.weasis.dicom.explorer.DicomFieldsView.DicomData;
 import org.weasis.dicom.explorer.Messages;
 
 public class DicomManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DicomManager.class);
 
     /** The single instance of this singleton class. */
 
     private static DicomManager instance;
-    private TransferSyntax wadoTSUID;
     private boolean portableDirCache;
     private final List<DicomData> limitedDicomTags;
 
     private DicomManager() {
         limitedDicomTags = new ArrayList<>();
         portableDirCache = true;
-        restoreDefaultValues();
-        if ("superuser".equals(System.getProperty("weasis.user.prefs"))) { //$NON-NLS-1$ //$NON-NLS-2$
-            final BundleContext context = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
-            Preferences pref = BundlePreferences.getDefaultPreferences(context);
-            if (pref != null) {
-                Preferences prefNode = pref.node("wado"); //$NON-NLS-1$
-                wadoTSUID = TransferSyntax.getTransferSyntax(prefNode.get("compression.type", "NONE")); //$NON-NLS-1$ //$NON-NLS-2$
-                if (wadoTSUID.getCompression() != null) {
-                    wadoTSUID.setCompression(prefNode.getInt("compression.rate", 75)); //$NON-NLS-1$
-                }
-            }
-        }
         initRequiredDicomTags();
     }
 
@@ -117,31 +95,5 @@ public class DicomManager {
 
     public void setPortableDirCache(boolean portableDirCache) {
         this.portableDirCache = portableDirCache;
-    }
-
-    public TransferSyntax getWadoTSUID() {
-        return wadoTSUID;
-    }
-
-    public void setWadoTSUID(TransferSyntax wadoTSUID) {
-        this.wadoTSUID = wadoTSUID == null ? TransferSyntax.NONE : wadoTSUID;
-    }
-
-    public void restoreDefaultValues() {
-        this.wadoTSUID = TransferSyntax.NONE;
-    }
-
-    public void savePreferences() {
-        if ("superuser".equals(System.getProperty("weasis.user.prefs"))) { //$NON-NLS-1$ //$NON-NLS-2$
-            final BundleContext context = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
-            Preferences prefs = BundlePreferences.getDefaultPreferences(context);
-            if (prefs != null) {
-                Preferences prefNode = prefs.node("wado"); //$NON-NLS-1$
-                BundlePreferences.putStringPreferences(prefNode, "compression.type", wadoTSUID.name()); //$NON-NLS-1$
-                if (wadoTSUID.getCompression() != null) {
-                    BundlePreferences.putIntPreferences(prefNode, "compression.rate", wadoTSUID.getCompression()); //$NON-NLS-1$
-                }
-            }
-        }
     }
 }

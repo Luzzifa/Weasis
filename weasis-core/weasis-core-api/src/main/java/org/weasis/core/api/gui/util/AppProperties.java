@@ -1,18 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.gui.util;
 
 import java.io.File;
-
-import javax.swing.LookAndFeel;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -27,12 +24,14 @@ import org.weasis.core.api.util.FileUtil;
  *
  */
 public class AppProperties {
+    private static final String UNKNOWN = "unknown"; //$NON-NLS-1$
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AppProperties.class);
 
     /**
      * The version of the application (for display)
      */
-    public static final String WEASIS_VERSION = System.getProperty("weasis.version", "2.5.x"); //$NON-NLS-1$ //$NON-NLS-2$
+    public static final String WEASIS_VERSION = System.getProperty("weasis.version", "0.0.0"); //$NON-NLS-1$ //$NON-NLS-2$
 
     /**
      * The name of the application (for display)
@@ -43,7 +42,7 @@ public class AppProperties {
      * The current user of the application (defined either in JNLP by the property "weasis.user" or by the user of the
      * operating system session if the property is null)
      */
-    public static final String WEASIS_USER = System.getProperty("weasis.user", "user"); //$NON-NLS-1$ //$NON-NLS-2$
+    public static final String WEASIS_USER = System.getProperty("weasis.user", UNKNOWN); //$NON-NLS-1$
 
     /**
      * The name of the configuration profile (defined in config-ext.properties). The value is “default” if null. This
@@ -70,7 +69,7 @@ public class AppProperties {
          * or by running multiple instances of Weasis from different sources.
          */
         APP_TEMP_DIR = new File(tdir, "weasis-" + System.getProperty("user.name", "tmp") + "." //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-            + System.getProperty("weasis.source.id", "unknown")); //$NON-NLS-1$ //$NON-NLS-2$
+            + System.getProperty("weasis.source.id", UNKNOWN)); //$NON-NLS-1$
         System.setProperty("weasis.tmp.dir", APP_TEMP_DIR.getAbsolutePath()); //$NON-NLS-1$
         try {
             // Clean temp folder, necessary when the application has crashed.
@@ -84,11 +83,11 @@ public class AppProperties {
      * The path of the directory “.weasis” (containing the installation and the preferences)
      */
     public static final String WEASIS_PATH =
-        System.getProperty("weasis.path", APP_TEMP_DIR + File.separator + ".weasis"); //$NON-NLS-1$ //$NON-NLS-2$
+        System.getProperty("weasis.path", System.getProperty("user.home") + File.separator + ".weasis"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
     public static final File FILE_CACHE_DIR = buildAccessibleTempDirectory("cache"); //$NON-NLS-1$
 
-    public static final String OPERATING_SYSTEM = System.getProperty("os.name", "unknown").toLowerCase(); //$NON-NLS-1$ //$NON-NLS-2$
+    public static final String OPERATING_SYSTEM = System.getProperty("os.name", UNKNOWN).toLowerCase(); //$NON-NLS-1$
 
     public static final GhostGlassPane glassPane = new GhostGlassPane();
 
@@ -133,15 +132,4 @@ public class AppProperties {
         }
         return AppProperties.APP_TEMP_DIR;
     }
-
-    public static boolean isMacNativeLookAndFeel() {
-        if (AppProperties.OPERATING_SYSTEM.startsWith("mac")) { //$NON-NLS-1$
-            LookAndFeel laf = javax.swing.UIManager.getLookAndFeel();
-            if (laf != null && laf.isNativeLookAndFeel()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
 }

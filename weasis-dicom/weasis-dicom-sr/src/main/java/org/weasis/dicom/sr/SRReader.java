@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.sr;
 
@@ -16,9 +15,10 @@ import java.time.temporal.TemporalAccessor;
 import java.util.Map;
 
 import org.dcm4che3.data.Attributes;
-import org.dcm4che3.data.Code;
 import org.dcm4che3.data.Sequence;
 import org.dcm4che3.data.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.weasis.core.api.media.data.MediaElement;
 import org.weasis.core.api.media.data.Series;
 import org.weasis.core.api.media.data.TagUtil;
@@ -29,11 +29,13 @@ import org.weasis.core.ui.model.graphic.Graphic;
 import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
 import org.weasis.dicom.codec.DicomSpecialElement;
 import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.macro.Code;
 import org.weasis.dicom.codec.macro.SOPInstanceReference;
 import org.weasis.dicom.codec.macro.SeriesAndInstanceReference;
 import org.weasis.dicom.explorer.pr.PrGraphicUtil;
 
 public class SRReader {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SRReader.class);
 
     private final DicomSpecialElement dicomSR;
     private final Attributes dcmItems;
@@ -181,31 +183,23 @@ public class SRReader {
                     Attributes item = val.getNestedDataset(Tag.MeasurementUnitsCodeSequence);
                     if (item != null) {
                         Code unit = new Code(item);
-                        html.append(" "); //$NON-NLS-1$
-                        html.append(EscapeChars.forHTML(unit.getCodeValue()));
+                        if (!"1".equals(unit.getCodeValue())) { //$NON-NLS-1$
+                            html.append(" "); //$NON-NLS-1$
+                            addCodeMeaning(html, unit, null, null);
+                        }
                     }
                 }
             } else if ("CONTAINER".equals(type)) { //$NON-NLS-1$
                 return;
             } else if ("IMAGE".equals(type)) { //$NON-NLS-1$
                 html.append(continuous || noCodeName ? " " : StringUtil.COLON_AND_SPACE); //$NON-NLS-1$
-                Attributes item = c.getAttributes().getNestedDataset(Tag.ReferencedSOPSequence);
-                if (item != null) {
-                    SRImageReference imgRef = map.get(level);
-                    if (imgRef == null) {
-                        imgRef = new SRImageReference(level);
-                        map.put(level, imgRef);
-                    }
-                    if (imgRef.getSopInstanceReference() == null) {
-                        imgRef.setSopInstanceReference(new SOPInstanceReference(item));
-                    }
-
+                SRImageReference imgRef = getReferencedImage(map, level, c.getAttributes());
+                if (imgRef != null) {
                     html.append("<a href=\"http://"); //$NON-NLS-1$
                     html.append(level);
                     html.append("\" style=\"color:#FF9900\">"); //$NON-NLS-1$
                     html.append(Messages.getString("SRReader.show_img")); //$NON-NLS-1$
                     html.append("</a>"); //$NON-NLS-1$
-
                 }
             } else if ("DATETIME".equals(type)) { //$NON-NLS-1$
                 html.append(continuous || noCodeName ? " " : StringUtil.COLON_AND_SPACE); //$NON-NLS-1$
@@ -225,7 +219,6 @@ public class SRReader {
                     html.append(continuous || noCodeName ? " " : StringUtil.COLON_AND_SPACE); //$NON-NLS-1$
                     for (int i = 0; i < sequenceElt.size(); i++) {
                         SOPInstanceReference sopRef = new SOPInstanceReference(sequenceElt.get(i));
-                        // TODO convert UID to text
                         html.append(sopRef.getReferencedSOPClassUID());
                         html.append(" (SOP Instance UID"); //$NON-NLS-1$
                         html.append(StringUtil.COLON_AND_SPACE);
@@ -240,13 +233,19 @@ public class SRReader {
                     for (Attributes attributes : sc) {
                         SRDocumentContent c2 = new SRDocumentContent(attributes);
                         String id = getReferencedContentItemIdentifier(c2.getReferencedContentItemIdentifier());
-                        if (id != null) {
-                            SRImageReference imgRef = map.get(id);
+                        SRImageReference imgRef = null;
+                        if (id == null) {
+                            imgRef = getReferencedImage(map, level, attributes);
+                            id = level;
+                        } else {
+                            imgRef = map.get(id);
                             if (imgRef == null) {
                                 imgRef = new SRImageReference(id);
                                 map.put(id, imgRef);
                             }
+                        }
 
+                        if (imgRef != null) {
                             try {
                                 Graphic graphic = PrGraphicUtil.buildGraphic(graphicsItems, Color.MAGENTA, false, 1, 1,
                                     false, null, true);
@@ -254,7 +253,7 @@ public class SRReader {
                                     imgRef.addGraphic(graphic);
                                 }
                             } catch (InvalidShapeException e) {
-                                e.printStackTrace();
+                                LOGGER.error("Cannot build graphic from SR", e); //$NON-NLS-1$
                             }
 
                             html.append(continuous || noCodeName ? " " : StringUtil.COLON_AND_SPACE); //$NON-NLS-1$
@@ -298,6 +297,19 @@ public class SRReader {
             }
 
         }
+    }
+
+    private static SRImageReference getReferencedImage(Map<String, SRImageReference> map, String level,
+        Attributes attributes) {
+        Attributes item = attributes.getNestedDataset(Tag.ReferencedSOPSequence);
+        if (item == null) {
+            return null;
+        }
+        SRImageReference imgRef = map.computeIfAbsent(level, k -> new SRImageReference(level));
+        if (imgRef.getSopInstanceReference() == null) {
+            imgRef.setSopInstanceReference(new SOPInstanceReference(item));
+        }
+        return imgRef;
     }
 
     private static String getReferencedContentItemIdentifier(int[] refs) {

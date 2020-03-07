@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.pref;
 
@@ -140,7 +139,7 @@ public class ScreenPrefView extends AbstractItemDialogPage {
         defMonitorComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 JComboBox<?> comboBox = (JComboBox<?>) e.getSource();
-                BundleTools.LOCAL_PERSISTENCE.putIntProperty("default.monitor", comboBox.getSelectedIndex()); //$NON-NLS-1$
+                BundleTools.LOCAL_UI_PERSISTENCE.putIntProperty("default.monitor", comboBox.getSelectedIndex()); //$NON-NLS-1$
             }
         });
 
@@ -155,7 +154,7 @@ public class ScreenPrefView extends AbstractItemDialogPage {
     }
 
     public static int getDefaultMonitor() {
-        return BundleTools.LOCAL_PERSISTENCE.getIntProperty("default.monitor", 0); //$NON-NLS-1$
+        return BundleTools.LOCAL_UI_PERSISTENCE.getIntProperty("default.monitor", 0); //$NON-NLS-1$
     }
 
     @Override
@@ -220,10 +219,10 @@ public class ScreenPrefView extends AbstractItemDialogPage {
 
             if (monitor.getRealScaleFactor() > 0) {
                 String hlength = DecFormater
-                    .oneDecimal(Unit.MILLIMETER.getConversionRatio(monitor.getRealScaleFactor()) * horizontalLength)
+                    .allNumber(Unit.MILLIMETER.getConversionRatio(monitor.getRealScaleFactor()) * horizontalLength)
                     + " " + Unit.MILLIMETER.getAbbreviation(); //$NON-NLS-1$
                 String vlength = DecFormater
-                    .oneDecimal(Unit.MILLIMETER.getConversionRatio(monitor.getRealScaleFactor()) * verticalLength) + " " //$NON-NLS-1$
+                    .allNumber(Unit.MILLIMETER.getConversionRatio(monitor.getRealScaleFactor()) * verticalLength) + " " //$NON-NLS-1$
                     + Unit.MILLIMETER.getAbbreviation();
                 g2d.drawString(hlength, x2 - 70, y2 + 15);
                 g2d.drawString(vlength, xv1 + 10, yv2 - 5);
@@ -319,7 +318,7 @@ public class ScreenPrefView extends AbstractItemDialogPage {
                 buf.append("x"); //$NON-NLS-1$
                 buf.append(b.height);
                 buf.append(".pitch"); //$NON-NLS-1$
-                BundleTools.LOCAL_PERSISTENCE.putDoubleProperty(buf.toString(), monitor.getRealScaleFactor());
+                BundleTools.LOCAL_UI_PERSISTENCE.putDoubleProperty(buf.toString(), monitor.getRealScaleFactor());
             }
         }
 

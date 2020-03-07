@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.base.viewer2d;
 
@@ -84,9 +83,13 @@ public class View2dContainer extends ImageViewerPlugin<ImageElement> implements 
     // Unmodifiable list of the default synchronization elements
     public static final List<SynchView> DEFAULT_SYNCH_LIST =
         Arrays.asList(SynchView.NONE, SynchView.DEFAULT_STACK, SynchView.DEFAULT_TILE);
+
+    public static final GridBagLayoutModel VIEWS_2x1_r1xc2_histo = new GridBagLayoutModel(
+        View2dContainer.class.getResourceAsStream("/config/layoutModelHisto.xml"), "layout_histo", //$NON-NLS-1$ //$NON-NLS-2$
+        Messages.getString("View2dContainer.histogram")); //$NON-NLS-1$
     // Unmodifiable list of the default layout elements
     public static final List<GridBagLayoutModel> DEFAULT_LAYOUT_LIST =
-        Arrays.asList(VIEWS_1x1, VIEWS_1x2, VIEWS_2x1, VIEWS_2x2_f2, VIEWS_2_f1x2, VIEWS_2x2);
+        Arrays.asList(VIEWS_1x1, VIEWS_1x2, VIEWS_2x1, VIEWS_2x1_r1xc2_histo, VIEWS_2x2_f2, VIEWS_2_f1x2, VIEWS_2x2);
 
     // Static tools shared by all the View2dContainer instances, tools are registered when a container is selected
     // Do not initialize tools in a static block (order initialization issue with eventManager), use instead a lazy

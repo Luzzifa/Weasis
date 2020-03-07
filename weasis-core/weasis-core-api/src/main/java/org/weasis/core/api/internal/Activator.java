@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.internal;
 
@@ -30,14 +29,14 @@ import org.weasis.core.api.gui.util.AppProperties;
 import org.weasis.core.api.media.data.Codec;
 import org.weasis.core.api.service.AuditLog;
 import org.weasis.core.api.service.BundleTools;
-import org.weasis.core.api.service.DataFileBackingStoreImpl;
+import org.weasis.core.api.util.LangUtil;
 
 public class Activator implements BundleActivator, ServiceListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(Activator.class);
 
     @Override
     public void start(BundleContext bundleContext) throws Exception {
-        bundleContext.registerService(BackingStore.class.getName(), new DataFileBackingStoreImpl(bundleContext), null);
+        bundleContext.registerService(BackingStore.class.getName(), new StreamBackingStoreImpl(bundleContext), null);
 
         for (ServiceReference<Codec> service : bundleContext.getServiceReferences(Codec.class, null)) {
             registerCodecPlugins(bundleContext.getService(service));
@@ -45,17 +44,17 @@ public class Activator implements BundleActivator, ServiceListener {
 
         bundleContext.addServiceListener(this, String.format("(%s=%s)", Constants.OBJECTCLASS, Codec.class.getName()));//$NON-NLS-1$
 
-        // Trick for avoiding 403 error when downloading from some web sites
-        System.setProperty("http.agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1"); //$NON-NLS-1$ //$NON-NLS-2$
         // Allows to connect through a proxy initialized by Java Webstart
-        ProxyDetector.setProxyFromJavaWebStart();
+        if (!LangUtil.geEmptytoTrue(System.getProperty("http.bundle.cache"))) { //$NON-NLS-1$
+            ProxyUtils.setProxyFromJavaWebStart();
+        }
 
         initLoggerAndAudit(bundleContext);
     }
 
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
-        // TODO should be stop in after all bundles implementing preferences
+        BundleTools.saveSystemPreferences();
     }
 
     @Override
@@ -67,8 +66,7 @@ public class Activator implements BundleActivator, ServiceListener {
         try {
             codec = (Codec) context.getService(sRef);
         } catch (RuntimeException e) {
-            // TODO find why sometimes service cannot be returned
-            LOGGER.info("Cannot get service of {}", sRef.getBundle()); //$NON-NLS-1$
+            LOGGER.error("Cannot get service of {}", sRef.getBundle(), e); //$NON-NLS-1$
         }
         if (codec == null) {
             return;

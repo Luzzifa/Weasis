@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.explorer.model;
 
@@ -15,6 +14,7 @@ import java.beans.PropertyChangeSupport;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -38,7 +38,7 @@ import org.weasis.core.api.service.BundleTools;
 public abstract class AbstractFileModel implements TreeModel, DataExplorerModel {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractFileModel.class);
 
-    public static final String[] functions = { "get", "close" }; //$NON-NLS-1$ //$NON-NLS-2$
+    public static final List<String> functions = Collections.unmodifiableList(Arrays.asList("get", "close")); //$NON-NLS-1$ //$NON-NLS-2$
 
     public static final String NAME = "All Files"; //$NON-NLS-1$
     public static final TreeModelNode group =
@@ -56,7 +56,7 @@ public abstract class AbstractFileModel implements TreeModel, DataExplorerModel 
     }
 
     @Override
-    public synchronized List<Codec> getCodecPlugins() {
+    public List<Codec> getCodecPlugins() {
         return BundleTools.CODEC_PLUGINS;
     }
 
@@ -68,11 +68,9 @@ public abstract class AbstractFileModel implements TreeModel, DataExplorerModel 
     @Override
     public MediaSeriesGroup getHierarchyNode(MediaSeriesGroup parent, Object value) {
         if (parent != null || value != null) {
-            synchronized (model) {
-                for (MediaSeriesGroup node : model.getSuccessors(parent)) {
-                    if (node.matchIdValue(value)) {
-                        return node;
-                    }
+            for (MediaSeriesGroup node : model.getSuccessors(parent)) {
+                if (node.matchIdValue(value)) {
+                    return node;
                 }
             }
         }
@@ -81,18 +79,14 @@ public abstract class AbstractFileModel implements TreeModel, DataExplorerModel 
 
     @Override
     public void addHierarchyNode(MediaSeriesGroup root, MediaSeriesGroup leaf) {
-        synchronized (model) {
-            model.addLeaf(root, leaf);
-        }
+        model.addLeaf(root, leaf);
     }
 
     @Override
     public void removeHierarchyNode(MediaSeriesGroup root, MediaSeriesGroup leaf) {
-        synchronized (model) {
-            Tree<MediaSeriesGroup> tree = model.getTree(root);
-            if (tree != null) {
-                tree.removeLeaf(leaf);
-            }
+        Tree<MediaSeriesGroup> tree = model.getTree(root);
+        if (tree != null) {
+            tree.removeLeaf(leaf);
         }
     }
 
@@ -102,17 +96,14 @@ public abstract class AbstractFileModel implements TreeModel, DataExplorerModel 
             if (node.getTagID().equals(modelNode.getTagElement())) {
                 return node;
             }
-            synchronized (model) {
-                Tree<MediaSeriesGroup> tree = model.getTree(node);
-                if (tree != null) {
-
-                    Tree<MediaSeriesGroup> parent;
-                    while ((parent = tree.getParent()) != null) {
-                        if (parent.getHead().getTagID().equals(modelNode.getTagElement())) {
-                            return parent.getHead();
-                        }
-                        tree = parent;
+            Tree<MediaSeriesGroup> tree = model.getTree(node);
+            if (tree != null) {
+                Tree<MediaSeriesGroup> parent;
+                while ((parent = tree.getParent()) != null) {
+                    if (parent.getHead().getTagID().equals(modelNode.getTagElement())) {
+                        return parent.getHead();
                     }
+                    tree = parent;
                 }
             }
         }
@@ -120,11 +111,9 @@ public abstract class AbstractFileModel implements TreeModel, DataExplorerModel 
     }
 
     public void dispose() {
-        synchronized (model) {
-            for (Iterator<MediaSeriesGroup> iterator =
-                this.getChildren(MediaSeriesGroupNode.rootNode).iterator(); iterator.hasNext();) {
-                iterator.next().dispose();
-            }
+        for (Iterator<MediaSeriesGroup> iterator = this.getChildren(MediaSeriesGroupNode.rootNode).iterator(); iterator
+            .hasNext();) {
+            iterator.next().dispose();
         }
         model.clear();
     }

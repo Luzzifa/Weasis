@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.acquire.explorer.gui.dialog;
 
@@ -69,7 +68,7 @@ import org.weasis.opencv.data.PlanarImage;
 public class AcquirePublishDialog extends JDialog {
     private static final Logger LOGGER = LoggerFactory.getLogger(AcquirePublishDialog.class);
 
-    public static final String P_LAST_RES = "last.dir"; //$NON-NLS-1$
+    public static final String P_LAST_RESOLUTION = "last.resolution"; //$NON-NLS-1$
     public static final String PREFERENCE_NODE = "publish"; //$NON-NLS-1$
 
     public enum Resolution {
@@ -182,7 +181,7 @@ public class AcquirePublishDialog extends JDialog {
             BundlePreferences.getDefaultPreferences(FrameworkUtil.getBundle(this.getClass()).getBundleContext());
         if (prefs != null) {
             Preferences p = prefs.node(PREFERENCE_NODE);
-            resolutionCombo.setSelectedItem(Resolution.getInstance(p.get(P_LAST_RES, Resolution.ORIGINAL.name())));
+            resolutionCombo.setSelectedItem(Resolution.getInstance(p.get(P_LAST_RESOLUTION, Resolution.ORIGINAL.name())));
         }
         resolutionPane.add(resolutionCombo);
         resolutionPane.setVisible(Boolean.FALSE);
@@ -370,7 +369,7 @@ public class AcquirePublishDialog extends JDialog {
             BundlePreferences.getDefaultPreferences(FrameworkUtil.getBundle(this.getClass()).getBundleContext());
         if (prefs != null) {
             Preferences p = prefs.node(PREFERENCE_NODE);
-            BundlePreferences.putStringPreferences(p, P_LAST_RES, resolution.name());
+            BundlePreferences.putStringPreferences(p, P_LAST_RESOLUTION, resolution.name());
         }
     }
 

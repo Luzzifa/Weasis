@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.viewer2d.internal;
 
@@ -56,7 +55,7 @@ public class Activator implements BundleActivator, ServiceListener {
 
         Dictionary<String, Object> dict = new Hashtable<>();
         dict.put(CommandProcessor.COMMAND_SCOPE, "dcmview2d"); //$NON-NLS-1$
-        dict.put(CommandProcessor.COMMAND_FUNCTION, EventManager.functions);
+        dict.put(CommandProcessor.COMMAND_FUNCTION, EventManager.functions.toArray(new String[EventManager.functions.size()]));
         bundleContext.registerService(EventManager.class.getName(), EventManager.getInstance(), dict);
 
         registerExistingComponents(bundleContext);

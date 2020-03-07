@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.pref;
 
@@ -56,13 +55,16 @@ public class ViewSetting {
             basicStatistics = stats.getBoolean("basic", true); //$NON-NLS-1$
             moreStatistics = stats.getBoolean("more", true); //$NON-NLS-1$
 
+            ImageStatistics.IMAGE_PIXELS.setComputed(basicStatistics);
             ImageStatistics.IMAGE_MIN.setComputed(basicStatistics);
             ImageStatistics.IMAGE_MAX.setComputed(basicStatistics);
             ImageStatistics.IMAGE_MEAN.setComputed(basicStatistics);
 
+            ImageStatistics.IMAGE_MEDIAN.setComputed(moreStatistics);
             ImageStatistics.IMAGE_STD.setComputed(moreStatistics);
             ImageStatistics.IMAGE_SKEW.setComputed(moreStatistics);
             ImageStatistics.IMAGE_KURTOSIS.setComputed(moreStatistics);
+            ImageStatistics.IMAGE_ENTROPY.setComputed(moreStatistics);
 
             String labels = stats.get("label", null); //$NON-NLS-1$
             if (labels != null) {
@@ -139,7 +141,7 @@ public class ViewSetting {
             buf.append("x"); //$NON-NLS-1$
             buf.append(b.height);
             buf.append(".pitch"); //$NON-NLS-1$
-            double pitch = BundleTools.LOCAL_PERSISTENCE.getDoubleProperty(buf.toString(), 0.0);
+            double pitch = BundleTools.LOCAL_UI_PERSISTENCE.getDoubleProperty(buf.toString(), 0.0);
             monitor.setRealScaleFactor(pitch);
             monitors.add(monitor);
         }

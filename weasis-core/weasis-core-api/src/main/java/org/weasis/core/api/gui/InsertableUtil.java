@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.gui;
 
@@ -38,7 +37,7 @@ public class InsertableUtil {
         String componentName, Type type) {
         if (list != null && prefs != null && bundleName != null && componentName != null) {
             Preferences prefNode = prefs.node(componentName).node(type.name().toLowerCase() + "s"); //$NON-NLS-1$
-            synchronized (list) {
+            synchronized (list) {//NOSONAR lock object is the list for iterating its elements safely
                 for (Insertable c : list) {
                     if (!Type.EMPTY.equals(c.getType())) {
                         String nodeName = getCName(c.getClass());
@@ -50,7 +49,7 @@ public class InsertableUtil {
                         if (valString == null) {
                             val = getBooleanProperty(BundleTools.SYSTEM_PREFERENCES, bundleName, componentName,
                                 nodeName, key, val);
-                        } else if ("false".equalsIgnoreCase(valString)) { //$NON-NLS-1$
+                        } else if (Boolean.FALSE.toString().equalsIgnoreCase(valString)) { 
                             val = false;
                         }
                         c.setComponentEnabled(val);
@@ -79,7 +78,7 @@ public class InsertableUtil {
     public static void savePreferences(List<? extends Insertable> list, Preferences prefs, Type type) {
         if (list != null && prefs != null) {
             Preferences prefNode = prefs.node(type.name().toLowerCase() + "s"); //$NON-NLS-1$
-            synchronized (list) {
+            synchronized (list) {//NOSONAR lock object is the list for iterating its elements safely
                 for (Insertable c : list) {
                     if (!Type.EMPTY.equals(c.getType())) {
                         String cname = getCName(c.getClass());
@@ -106,9 +105,9 @@ public class InsertableUtil {
                     buf.append(key);
                     final String value = props.getProperty(buf.toString());
                     if (value != null) {
-                        if ("true".equalsIgnoreCase(value)) { //$NON-NLS-1$
+                        if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {
                             return true;
-                        } else if ("false".equalsIgnoreCase(value)) { //$NON-NLS-1$
+                        } else if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {
                             return false;
                         }
                     }

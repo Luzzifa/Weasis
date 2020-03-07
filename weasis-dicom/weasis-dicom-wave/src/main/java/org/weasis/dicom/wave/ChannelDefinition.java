@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.wave;
 
@@ -35,7 +34,7 @@ public class ChannelDefinition {
      */
     public ChannelDefinition(Attributes dcm, int position) {
         this.position = position;
-        String title = Objects.requireNonNull(dcm.getNestedDataset(Tag.ChannelSourceSequence), "no ChannelSourceSequence")
+        String title = Objects.requireNonNull(dcm.getNestedDataset(Tag.ChannelSourceSequence), "no ChannelSourceSequence") //$NON-NLS-1$
             .getString(Tag.CodeMeaning);
         this.lead = Lead.buildLead(title);
         Double chSensisvity = DicomMediaUtils.getDoubleFromDicomElement(dcm, Tag.ChannelSensitivity, null);
@@ -48,10 +47,10 @@ public class ChannelDefinition {
             Double sCorrectionFactor =
                 DicomMediaUtils.getDoubleFromDicomElement(dcm, Tag.ChannelSensitivityCorrectionFactor, 1.0);
             Attributes chs = Objects.requireNonNull(dcm.getNestedDataset(Tag.ChannelSensitivityUnitsSequence),
-                "no ChannelSensitivityUnitsSequence found");
+                "no ChannelSensitivityUnitsSequence found"); //$NON-NLS-1$
             String unit = chs.getString(Tag.CodeValue, org.weasis.core.api.image.util.Unit.PIXEL.getAbbreviation());
             String unitDesc = chs.getString(Tag.CodeMeaning, org.weasis.core.api.image.util.Unit.PIXEL.getFullName());
-            double factorUnit = "mV".equals(unit) ? 1000 : 1;
+            double factorUnit = "mV".equals(unit) ? 1000 : 1; //$NON-NLS-1$
             this.amplitudeUnit = new Unit(unitDesc, unit, chSensisvity * sCorrectionFactor * factorUnit);
         }
 

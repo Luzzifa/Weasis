@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.media.data;
 
@@ -52,7 +51,7 @@ public abstract class Series<E extends MediaElement> extends MediaSeriesGroupNod
     protected final Map<Comparator<E>, List<E>> sortedMedias = new HashMap<>(6);
     protected final Comparator<E> mediaOrder;
     protected SeriesImporter seriesLoader;
-    private double fileSize;
+    private long fileSize;
 
     public Series(TagW tagID, Object identifier, TagView displayTag) {
         this(tagID, identifier, displayTag, null);
@@ -72,7 +71,7 @@ public abstract class Series<E extends MediaElement> extends MediaSeriesGroupNod
         List<E> ls = list;
         if (ls == null) {
             ls = new ArrayList<>();
-            fileSize = 0.0;
+            fileSize = 0L;
         } else if (mediaOrder != null) {
             Collections.sort(ls, mediaOrder);
         }
@@ -98,13 +97,11 @@ public abstract class Series<E extends MediaElement> extends MediaSeriesGroupNod
     public List<E> getSortedMedias(Comparator<E> comparator) {
         // Do not sort when it is the default order.
         if (comparator != null && !comparator.equals(mediaOrder)) {
-            List<E> sorted = sortedMedias.get(comparator);
-            if (sorted == null) {
-                sorted = new ArrayList<>(medias);
+            return sortedMedias.computeIfAbsent(comparator, k -> {
+                List<E> sorted = new ArrayList<>(medias);
                 Collections.sort(sorted, comparator);
-                sortedMedias.put(comparator, sorted);
-            }
-            return sorted;
+                return sorted;
+            });
         }
         return medias;
     }
@@ -355,6 +352,19 @@ public abstract class Series<E extends MediaElement> extends MediaSeriesGroupNod
         }
         toolTips.append("<br>"); //$NON-NLS-1$
     }
+    
+    protected void addToolTipsElement(StringBuilder toolTips, String title, TagW tag1, TagW tag2) {
+        toolTips.append(title);
+        toolTips.append(StringUtil.COLON_AND_SPACE);
+        if (tag1 != null) {
+            toolTips.append(tag1.getFormattedTagValue(getTagValue(tag1), null));
+            toolTips.append(" - "); //$NON-NLS-1$
+        }
+        if (tag2 != null) {
+            toolTips.append(tag2.getFormattedTagValue(getTagValue(tag2), null));
+        }
+        toolTips.append("<br>"); //$NON-NLS-1$
+    }
 
     @Override
     public void setOpen(boolean open) {
@@ -426,12 +436,12 @@ public abstract class Series<E extends MediaElement> extends MediaSeriesGroupNod
         return -1;
     }
 
-    public synchronized void setFileSize(double size) {
+    public synchronized void setFileSize(long size) {
         fileSize = size;
     }
 
     @Override
-    public synchronized double getFileSize() {
+    public synchronized long getFileSize() {
         return fileSize;
     }
 

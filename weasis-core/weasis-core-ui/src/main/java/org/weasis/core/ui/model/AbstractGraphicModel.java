@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.model;
 
@@ -36,8 +35,6 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.weasis.core.api.gui.util.ActionW;
 import org.weasis.core.api.image.util.MeasurableLayer;
 import org.weasis.core.api.media.data.ImageElement;
@@ -79,11 +76,9 @@ import org.weasis.core.ui.util.MouseEventDouble;
 public abstract class AbstractGraphicModel extends DefaultUUID implements GraphicModel {
     private static final long serialVersionUID = 1187916695295007387L;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGraphicModel.class);
-
-    private volatile List<ReferencedSeries> referencedSeries;
-    private volatile List<GraphicLayer> layers;
-    protected volatile List<Graphic> models;
+    private List<ReferencedSeries> referencedSeries;
+    private List<GraphicLayer> layers;
+    protected List<Graphic> models;
 
     private final List<GraphicSelectionListener> selectedGraphicsListeners = new ArrayList<>();
     private final List<GraphicModelChangeListener> modelListeners = new ArrayList<>();
@@ -579,7 +574,7 @@ public abstract class AbstractGraphicModel extends DefaultUUID implements Graphi
         Rectangle2D viewClip) {
         // Get the visible view in real coordinates, note only Sun g2d return consistent clip area with offset
         Shape area = inverseTransform.createTransformedShape(viewClip == null ? g2d.getClipBounds() : viewClip);
-        Rectangle2D bound = area.getBounds2D();
+        Rectangle2D bound = area == null ? null : area.getBounds2D();
 
         g2d.translate(0.5, 0.5);
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, DefaultView2d.antialiasingOn);

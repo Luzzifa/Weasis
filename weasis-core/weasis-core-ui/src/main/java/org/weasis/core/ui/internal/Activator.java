@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.internal;
 
@@ -46,7 +45,7 @@ public class Activator implements BundleActivator, ServiceListener {
         registerCommands(bundleContext);
         File dataFolder = AppProperties.getBundleDataFolder(bundleContext);
         if (dataFolder != null) {
-            FileUtil.readProperties(new File(dataFolder, "persitence.properties"), BundleTools.LOCAL_PERSISTENCE);//$NON-NLS-1$
+            FileUtil.readProperties(new File(dataFolder, "persitence.properties"), BundleTools.LOCAL_UI_PERSISTENCE);//$NON-NLS-1$
         }
         Preferences prefs = BundlePreferences.getDefaultPreferences(bundleContext);
         AbstractInfoLayer.applyPreferences(prefs);
@@ -79,7 +78,7 @@ public class Activator implements BundleActivator, ServiceListener {
         if (dataFolder != null) {
             File file = new File(dataFolder, "persitence.properties"); //$NON-NLS-1$
             FileUtil.prepareToWriteFile(file);
-            FileUtil.storeProperties(file, BundleTools.LOCAL_PERSISTENCE, null);
+            FileUtil.storeProperties(file, BundleTools.LOCAL_UI_PERSISTENCE, null);
         }
     }
 
@@ -90,7 +89,12 @@ public class Activator implements BundleActivator, ServiceListener {
         GuiExecutor.instance().execute(() -> {
             ServiceReference<?> service = event.getServiceReference();
             BundleContext context = AppProperties.getBundleContext(service);
-            SeriesViewerFactory viewerFactory = (SeriesViewerFactory) context.getService(service);
+            SeriesViewerFactory viewerFactory = null;
+            try {
+                viewerFactory = (SeriesViewerFactory) context.getService(service);
+            } catch (Exception e) {
+                LOGGER.info("Cannot get service of {}", service.getBundle()); //$NON-NLS-1$
+            }
             if (viewerFactory != null) {
                 if (event.getType() == ServiceEvent.REGISTERED) {
                     registerSeriesViewerFactory(viewerFactory);
@@ -115,7 +119,7 @@ public class Activator implements BundleActivator, ServiceListener {
     private static void registerCommands(BundleContext context) {
         Dictionary<String, Object> dict = new Hashtable<>();
         dict.put(CommandProcessor.COMMAND_SCOPE, "image"); //$NON-NLS-1$
-        dict.put(CommandProcessor.COMMAND_FUNCTION, AbstractFileModel.functions);
+        dict.put(CommandProcessor.COMMAND_FUNCTION, AbstractFileModel.functions.toArray(new String[AbstractFileModel.functions.size()]));
         context.registerService(FileModel.class.getName(), ViewerPluginBuilder.DefaultDataModel, dict);
     }
 

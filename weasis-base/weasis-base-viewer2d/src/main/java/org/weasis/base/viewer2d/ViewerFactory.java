@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.base.viewer2d;
 
@@ -14,6 +13,7 @@ import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +55,7 @@ public class ViewerFactory implements SeriesViewerFactory {
     public static final String NAME = Messages.getString("ViewerFactory.img_viewer"); //$NON-NLS-1$
 
     private static final DefaultAction preferencesAction = new DefaultAction(Messages.getString("OpenImageAction.img"), //$NON-NLS-1$
-        new ImageIcon(SeriesViewerFactory.class.getResource("/icon/16x16/img-import.png")),
+        new ImageIcon(SeriesViewerFactory.class.getResource("/icon/16x16/img-import.png")), //$NON-NLS-1$
         ViewerFactory::getOpenImageAction);
 
     public ViewerFactory() {
@@ -167,6 +167,9 @@ public class ViewerFactory implements SeriesViewerFactory {
 
     @Override
     public List<Action> getOpenActions() {
+        if (!BundleTools.SYSTEM_PREFERENCES.getBooleanProperty("weasis.import.images", true)) { //$NON-NLS-1$
+            return Collections.emptyList();
+        }
         return Arrays.asList(preferencesAction);
     }
 
@@ -181,7 +184,7 @@ public class ViewerFactory implements SeriesViewerFactory {
     }
 
     static void getOpenImageAction(ActionEvent e) {
-        String directory = BundleTools.LOCAL_PERSISTENCE.getProperty("last.open.image.dir", "");//$NON-NLS-1$ //$NON-NLS-2$
+        String directory = BundleTools.LOCAL_UI_PERSISTENCE.getProperty("last.open.image.dir", "");//$NON-NLS-1$ //$NON-NLS-2$
         JFileChooser fileChooser = new JFileChooser(directory);
 
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -225,7 +228,7 @@ public class ViewerFactory implements SeriesViewerFactory {
                 JOptionPane.showMessageDialog(c, Messages.getString("OpenImageAction.error_open_msg"), //$NON-NLS-1$
                     Messages.getString("OpenImageAction.open_img"), JOptionPane.WARNING_MESSAGE); //$NON-NLS-1$
             }
-            BundleTools.LOCAL_PERSISTENCE.setProperty("last.open.image.dir", selectedFiles[0].getParent()); //$NON-NLS-1$
+            BundleTools.LOCAL_UI_PERSISTENCE.setProperty("last.open.image.dir", selectedFiles[0].getParent()); //$NON-NLS-1$
         }
     }
 }

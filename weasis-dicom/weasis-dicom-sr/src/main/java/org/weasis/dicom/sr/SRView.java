@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.sr;
 
@@ -321,7 +320,7 @@ public class SRView extends JScrollPane implements SeriesViewerListener {
                 }
             }
 
-            synchronized (model) {
+            synchronized (model) { //NOSONAR lock object is the list for iterating its elements safely
                 for (MediaSeriesGroup st : model.getChildren(patient)) {
                     if (st != study) {
                         s = findSOPInstanceReference(model, st, sopUID);
@@ -358,7 +357,7 @@ public class SRView extends JScrollPane implements SeriesViewerListener {
     private static Series<?> findSOPInstanceReference(DicomModel model, MediaSeriesGroup study, String sopUID) {
         if (model != null && study != null) {
             TagW sopTag = TagD.getUID(Level.INSTANCE);
-            synchronized (model) {
+            synchronized (model) { //NOSONAR lock object is the list for iterating its elements safely
                 for (MediaSeriesGroup seq : model.getChildren(study)) {
                     if (seq instanceof Series) {
                         Series<?> s = (Series<?>) seq;

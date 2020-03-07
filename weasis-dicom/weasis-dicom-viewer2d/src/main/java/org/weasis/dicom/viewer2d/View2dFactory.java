@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.viewer2d;
 
@@ -194,7 +193,7 @@ public class View2dFactory implements SeriesViewerFactory {
     }
 
     private static void getOpenImageAction(ActionEvent e) {
-        String directory = BundleTools.LOCAL_PERSISTENCE.getProperty("last.open.dicom.dir", "");//$NON-NLS-1$ //$NON-NLS-2$
+        String directory = BundleTools.LOCAL_UI_PERSISTENCE.getProperty("last.open.dicom.dir", "");//$NON-NLS-1$ //$NON-NLS-2$
         JFileChooser fileChooser = new JFileChooser(directory);
 
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -209,12 +208,12 @@ public class View2dFactory implements SeriesViewerFactory {
             || (selectedFiles = fileChooser.getSelectedFiles()) == null) {
             return;
         } else {
-            Codec codec = BundleTools.getCodec(DicomMediaIO.MIMETYPE, DicomCodec.NAME);
+            Codec codec = BundleTools.getCodec(DicomMediaIO.DICOM_MIMETYPE, DicomCodec.NAME);
             if (codec != null) {
                 ArrayList<MediaSeries<? extends MediaElement>> list = new ArrayList<>();
                 for (File file : selectedFiles) {
-                    if (MimeInspector.isMatchingMimeTypeFromMagicNumber(file, DicomMediaIO.MIMETYPE)) {
-                        MediaReader reader = codec.getMediaIO(file.toURI(), DicomMediaIO.MIMETYPE, null);
+                    if (MimeInspector.isMatchingMimeTypeFromMagicNumber(file, DicomMediaIO.DICOM_MIMETYPE)) {
+                        MediaReader reader = codec.getMediaIO(file.toURI(), DicomMediaIO.DICOM_MIMETYPE, null);
                         if (reader != null) {
                             if (reader.getMediaElement() == null) {
                                 // DICOM is not readable
@@ -243,7 +242,7 @@ public class View2dFactory implements SeriesViewerFactory {
                         Messages.getString("OpenDicomAction.desc"), JOptionPane.WARNING_MESSAGE); //$NON-NLS-1$
                 }
             }
-            BundleTools.LOCAL_PERSISTENCE.setProperty("last.open.dicom.dir", selectedFiles[0].getParent()); //$NON-NLS-1$
+            BundleTools.LOCAL_UI_PERSISTENCE.setProperty("last.open.dicom.dir", selectedFiles[0].getParent()); //$NON-NLS-1$
         }
     }
 }

@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.pref;
 
@@ -56,7 +55,7 @@ import org.weasis.core.ui.Messages;
 public class GeneralSetting extends AbstractItemDialogPage {
     private static final Logger LOGGER = LoggerFactory.getLogger(GeneralSetting.class);
 
-    public static final String pageName = Messages.getString("GeneralSetting.gen"); //$NON-NLS-1$
+    public static final String PAGE_NAME = Messages.getString("GeneralSetting.gen"); //$NON-NLS-1$
 
     private LookInfo oldUILook;
     private final GridBagLayout gridBagLayout1 = new GridBagLayout();
@@ -105,7 +104,7 @@ public class GeneralSetting extends AbstractItemDialogPage {
         new JComboBox<>(new String[] { "", "0", "1", "3", "5", "10", "20", "50", "100" }); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$ //$NON-NLS-7$ //$NON-NLS-8$ //$NON-NLS-9$
 
     public GeneralSetting() {
-        super(pageName);
+        super(PAGE_NAME);
         setComponentPosition(0);
         setList(jComboBoxlnf, UIManager.getInstalledLookAndFeels());
         try {
@@ -249,6 +248,7 @@ public class GeneralSetting extends AbstractItemDialogPage {
         gbcPanel2.gridy = 7;
         add(panel2, gbcPanel2);
         JButton btnNewButton = new JButton(Messages.getString("restore.values")); //$NON-NLS-1$
+        panel2.add(JMVUtils.createHelpButton("locale", true)); //$NON-NLS-1$
         panel2.add(btnNewButton);
         btnNewButton.addActionListener(e -> {
             resetoDefaultValues();
@@ -260,11 +260,11 @@ public class GeneralSetting extends AbstractItemDialogPage {
     private static String getText() {
         ZonedDateTime now = ZonedDateTime.now();
         return String.format(Messages.getString("GeneralSetting.txtNote"), //$NON-NLS-1$
-            new Object[] { LocalUtil.getDateTimeFormatter(FormatStyle.SHORT).format(now),
-                LocalUtil.getDateTimeFormatter(FormatStyle.MEDIUM).format(now),
-                LocalUtil.getDateTimeFormatter(FormatStyle.LONG).format(now),
-                LocalUtil.getDateTimeFormatter(FormatStyle.FULL).format(now),
-                LocalUtil.getNumberInstance().format(2543456.3465) });
+            LocalUtil.getDateTimeFormatter(FormatStyle.SHORT).format(now),
+            LocalUtil.getDateTimeFormatter(FormatStyle.MEDIUM).format(now),
+            LocalUtil.getDateTimeFormatter(FormatStyle.LONG).format(now),
+            LocalUtil.getDateTimeFormatter(FormatStyle.FULL).format(now),
+            LocalUtil.getNumberInstance().format(2543456.3465));
     }
 
     private void checkRolingLog() {
@@ -384,9 +384,9 @@ public class GeneralSetting extends AbstractItemDialogPage {
 
         LookInfo look = (LookInfo) jComboBoxlnf.getSelectedItem();
         if (look != null) {
-            BundleTools.SYSTEM_PREFERENCES.put("weasis.look", look.getClassName()); //$NON-NLS-1$
+            BundleTools.SYSTEM_PREFERENCES.setProperty("weasis.look", look.getClassName()); //$NON-NLS-1$
         }
-        // save preferences in local file
+        // save preferences
         BundleTools.saveSystemPreferences();
 
         // Restore old laf to avoid display issues.
@@ -412,7 +412,7 @@ public class GeneralSetting extends AbstractItemDialogPage {
 
     @Override
     public void resetoDefaultValues() {
-        BundleTools.SYSTEM_PREFERENCES.resetProperty(BundleTools.CONFIRM_CLOSE, "false");//$NON-NLS-1$
+        BundleTools.SYSTEM_PREFERENCES.resetProperty(BundleTools.CONFIRM_CLOSE, Boolean.FALSE.toString());
 
         // Reset properties used by OSGI service (Sling Logger)
         BundleTools.SYSTEM_PREFERENCES.resetServiceProperty(AuditLog.LOG_STACKTRACE_LIMIT, "3"); //$NON-NLS-1$

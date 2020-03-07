@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.qr;
 
@@ -152,14 +151,14 @@ public class RetrieveTask extends ExplorerTask<ExplorerTask<Boolean, String>, St
                     List<AbstractDicomNode> webNodes = AbstractDicomNode.loadDicomNodes(AbstractDicomNode.Type.WEB,
                         AbstractDicomNode.UsageType.RETRIEVE);
                     String host = getHostname(node.getDicomNode().getHostname());
-                    List<URL> wadoURLs = new ArrayList<>();
+                    List<DicomWebNode> wadoURLs = new ArrayList<>();
                     for (AbstractDicomNode n : webNodes) {
                         if (n instanceof DicomWebNode) {
                             DicomWebNode wn = (DicomWebNode) n;
                             URL url = wn.getUrl();
                             if (DicomWebNode.WebType.WADO == wn.getWebType() && url != null
                                 && getHostname(url.getHost()).contains(host)) {
-                                wadoURLs.add(url);
+                                wadoURLs.add(wn);
                             }
                         }
                     }
@@ -179,13 +178,16 @@ public class RetrieveTask extends ExplorerTask<ExplorerTask<Boolean, String>, St
 
                             if (response != null) {
                                 wadoURLs.clear();
-                                wadoURLs.add((URL) response);
+                                wadoURLs.add((DicomWebNode) response);
                             }
                         });
                     }
 
+                    DicomWebNode wnode = wadoURLs.get(0);
                     WadoParameters wadoParameters =
-                        new WadoParameters("local", wadoURLs.get(0).toString(), false, null, null, null); //$NON-NLS-1$
+                        new WadoParameters("local", wnode.getUrl().toString(), false, null, null, null); //$NON-NLS-1$
+                    wnode.getHeaders().forEach(wadoParameters::addHttpTag);
+                  
                     CFindQueryResult query = new CFindQueryResult(wadoParameters);
                     query.fillSeries(params, callingNode.getDicomNodeWithOnlyAET(), node.getDicomNode(),
                         dicomQrView.getDicomModel(), studies);

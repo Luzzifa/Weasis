@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.base.viewer2d;
 
@@ -24,7 +23,7 @@ import org.weasis.core.ui.util.WtoolBar;
 public class ImportToolBar extends WtoolBar {
 
     public ImportToolBar(int index) {
-        super("Images Import Bar", index);
+        super(Messages.getString("ImportToolBar.import_img_bar"), index); //$NON-NLS-1$
 
         if (BundleTools.SYSTEM_PREFERENCES.getBooleanProperty("weasis.import.images", true)) { //$NON-NLS-1$
             AbstractAction action = new AbstractAction() {
@@ -34,9 +33,9 @@ public class ImportToolBar extends WtoolBar {
                     ViewerFactory.getOpenImageAction(e);
                 }
             };
-            action.putValue(Action.LARGE_ICON_KEY, new ImageIcon(SeriesViewerFactory.class.getResource("/icon/32x32/img-import.png")));
+            action.putValue(Action.LARGE_ICON_KEY, new ImageIcon(SeriesViewerFactory.class.getResource("/icon/32x32/img-import.png"))); //$NON-NLS-1$
             final JButton btnImport = new JButton(action);
-            btnImport.setToolTipText("Open images");
+            btnImport.setToolTipText(Messages.getString("ImportToolBar.open_img")); //$NON-NLS-1$
             add(btnImport);
         }
     }

@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.codec;
 
@@ -232,61 +231,50 @@ public class AbstractKOSpecialElement extends DicomSpecialElement {
             Collection<HierachicalSOPInstanceReference> referencedStudySequence =
                 HierachicalSOPInstanceReference.toHierachicalSOPInstanceReferenceMacros(
                     dcmItems.getSequence(Tag.CurrentRequestedProcedureEvidenceSequence));
+            boolean sopInstanceExist = false;
 
-            if (referencedStudySequence != null) {
-                boolean sopInstanceExist = false;
+            for (HierachicalSOPInstanceReference studyRef : referencedStudySequence) {
+                Collection<SeriesAndInstanceReference> referencedSeriesSequence = studyRef.getReferencedSeries();
+                String studyUID = studyRef.getStudyInstanceUID();
 
-                for (HierachicalSOPInstanceReference studyRef : referencedStudySequence) {
-                    Collection<SeriesAndInstanceReference> referencedSeriesSequence = studyRef.getReferencedSeries();
-                    if (referencedSeriesSequence == null) {
-                        continue;
-                    }
+                for (SeriesAndInstanceReference serieRef : referencedSeriesSequence) {
+                    Collection<SOPInstanceReferenceAndMAC> referencedSOPInstanceSequence =
+                        serieRef.getReferencedSOPInstances();
+                    String seriesUID = serieRef.getSeriesInstanceUID();
 
-                    String studyUID = studyRef.getStudyInstanceUID();
+                    for (SOPInstanceReferenceAndMAC sopRef : referencedSOPInstanceSequence) {
+                        String sopInstanceUID = sopRef.getReferencedSOPInstanceUID();
 
-                    for (SeriesAndInstanceReference serieRef : referencedSeriesSequence) {
-                        Collection<SOPInstanceReferenceAndMAC> referencedSOPInstanceSequence =
-                            serieRef.getReferencedSOPInstances();
-                        if (referencedSOPInstanceSequence == null) {
+                        if (!StringUtil.hasText(sopInstanceUID)) {
                             continue;
                         }
 
-                        String seriesUID = serieRef.getSeriesInstanceUID();
+                        Map<String, SOPInstanceReferenceAndMAC> sopInstanceReferenceBySOPInstanceUID =
+                            sopInstanceReferenceMapBySeriesUID.get(seriesUID);
 
-                        for (SOPInstanceReferenceAndMAC sopRef : referencedSOPInstanceSequence) {
-                            String sopInstanceUID = sopRef.getReferencedSOPInstanceUID();
-
-                            if (!StringUtil.hasText(sopInstanceUID)) {
-                                continue;
-                            }
-
-                            Map<String, SOPInstanceReferenceAndMAC> sopInstanceReferenceBySOPInstanceUID =
-                                sopInstanceReferenceMapBySeriesUID.get(seriesUID);
-
-                            if (sopInstanceReferenceBySOPInstanceUID == null) {
-                                sopInstanceReferenceBySOPInstanceUID = new LinkedHashMap<>();
-                                sopInstanceReferenceMapBySeriesUID.put(seriesUID, sopInstanceReferenceBySOPInstanceUID);
-                            }
-                            sopInstanceReferenceBySOPInstanceUID.put(sopInstanceUID, sopRef);
-                            sopInstanceExist = true;
+                        if (sopInstanceReferenceBySOPInstanceUID == null) {
+                            sopInstanceReferenceBySOPInstanceUID = new LinkedHashMap<>();
+                            sopInstanceReferenceMapBySeriesUID.put(seriesUID, sopInstanceReferenceBySOPInstanceUID);
                         }
-
-                        if (sopInstanceExist) {
-                            Map<String, SeriesAndInstanceReference> seriesAndInstanceReferenceBySeriesUID =
-                                seriesAndInstanceReferenceMapByStudyUID.get(studyUID);
-
-                            if (seriesAndInstanceReferenceBySeriesUID == null) {
-                                seriesAndInstanceReferenceBySeriesUID = new LinkedHashMap<>();
-                                seriesAndInstanceReferenceMapByStudyUID.put(studyUID,
-                                    seriesAndInstanceReferenceBySeriesUID);
-                            }
-                            seriesAndInstanceReferenceBySeriesUID.put(seriesUID, serieRef);
-                        }
+                        sopInstanceReferenceBySOPInstanceUID.put(sopInstanceUID, sopRef);
+                        sopInstanceExist = true;
                     }
 
                     if (sopInstanceExist) {
-                        hierachicalSOPInstanceReferenceByStudyUID.put(studyUID, studyRef);
+                        Map<String, SeriesAndInstanceReference> seriesAndInstanceReferenceBySeriesUID =
+                            seriesAndInstanceReferenceMapByStudyUID.get(studyUID);
+
+                        if (seriesAndInstanceReferenceBySeriesUID == null) {
+                            seriesAndInstanceReferenceBySeriesUID = new LinkedHashMap<>();
+                            seriesAndInstanceReferenceMapByStudyUID.put(studyUID,
+                                seriesAndInstanceReferenceBySeriesUID);
+                        }
+                        seriesAndInstanceReferenceBySeriesUID.put(seriesUID, serieRef);
                     }
+                }
+
+                if (sopInstanceExist) {
+                    hierachicalSOPInstanceReferenceByStudyUID.put(studyUID, studyRef);
                 }
             }
         }

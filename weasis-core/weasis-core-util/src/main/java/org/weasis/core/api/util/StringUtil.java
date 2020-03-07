@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.util;
 
@@ -27,6 +26,7 @@ public class StringUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(StringUtil.class);
 
     public static final String EMPTY_STRING = ""; //$NON-NLS-1$
+    public static final String SPACE = " "; //$NON-NLS-1$
     public static final String COLON = Messages.getString("StringUtil.colon"); //$NON-NLS-1$
     public static final String COLON_AND_SPACE = Messages.getString("StringUtil.colon_space"); //$NON-NLS-1$
 
@@ -38,6 +38,8 @@ public class StringUtil {
 
     public enum Suffix {
         NO(""), //$NON-NLS-1$
+        
+        UNDERSCORE("_"), //$NON-NLS-1$
 
         ONE_PTS("."), //$NON-NLS-1$
 
@@ -102,7 +104,7 @@ public class StringUtil {
         }
         return EMPTY_INT_ARRAY;
     }
-    
+
     public static Integer getInteger(String val) {
         if (StringUtil.hasText(val)) {
             try {
@@ -113,7 +115,6 @@ public class StringUtil {
         }
         return null;
     }
-
 
     public static int getInt(String val) {
         if (StringUtil.hasText(val)) {
@@ -137,7 +138,7 @@ public class StringUtil {
         }
         return result;
     }
-    
+
     public static Double getDouble(String val) {
         if (StringUtil.hasText(val)) {
             try {
@@ -199,15 +200,29 @@ public class StringUtil {
      * @param s
      * @return the list of words or part with quotes
      */
-    public static List<String> splitStringExceptQuotes(String s) {
+    public static List<String> splitSpaceExceptInQuotes(String s) {
         if (s == null) {
             return Collections.emptyList();
         }
         List<String> matchList = new ArrayList<>();
-        Pattern patternSpaceExceptQuotes = Pattern.compile("[^\\s\"']+|\"[^\"]*\"|'[^']*'"); //$NON-NLS-1$
-        Matcher regexMatcher = patternSpaceExceptQuotes.matcher(s);
-        while (regexMatcher.find()) {
-            matchList.add(regexMatcher.group());
+        Pattern patternSpaceExceptQuotes = Pattern.compile("'[^']*'|\"[^\"]*\"|( )"); //$NON-NLS-1$
+        Matcher m = patternSpaceExceptQuotes.matcher(s);
+        StringBuffer b = new StringBuffer();
+        while (m.find()) {
+            if (m.group(1) == null) {
+                m.appendReplacement(b, m.group(0));
+                String arg = b.toString();
+                b.setLength(0);
+                if (StringUtil.hasText(arg)) {
+                    matchList.add(arg);
+                }
+            }
+        }
+        b.setLength(0);
+        m.appendTail(b);
+        String arg = b.toString();
+        if (StringUtil.hasText(arg)) {
+            matchList.add(arg);
         }
         return matchList;
     }

@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 // Placed in public domain by Dmitry Olshansky, 2006
 package org.weasis.core.ui.editor.image;
@@ -60,6 +59,7 @@ import org.weasis.core.ui.editor.SeriesViewerEvent.EVENT;
 import org.weasis.core.ui.editor.SeriesViewerListener;
 import org.weasis.core.ui.model.graphic.DragGraphic;
 import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.GraphicSelectionListener;
 import org.weasis.core.ui.pref.Monitor;
 import org.weasis.core.ui.util.MouseEventDouble;
 
@@ -309,7 +309,7 @@ public abstract class ImageViewerPlugin<E extends ImageElement> extends ViewerPl
             }
         }
         removeComponents();
-
+        GraphicSelectionListener glistener = null;
         final Map<LayoutConstraints, Component> elements = this.layoutModel.getConstraints();
         Iterator<LayoutConstraints> enumVal = elements.keySet().iterator();
         while (enumVal.hasNext()) {
@@ -335,6 +335,9 @@ public abstract class ImageViewerPlugin<E extends ImageElement> extends ViewerPl
                     if (component instanceof JComponent) {
                         ((JComponent) component).setOpaque(true);
                     }
+                    if (component instanceof HistogramView) {
+                        glistener = (HistogramView) component;
+                    }
                     components.add(component);
                     elements.put(e, component);
                     grid.add(component, e);
@@ -357,6 +360,9 @@ public abstract class ImageViewerPlugin<E extends ImageElement> extends ViewerPl
                     v.setSeries(selectedImagePane.getSeries(), null);
                 }
                 v.enableMouseAndKeyListener(mouseActions);
+                if (glistener != null) {
+                    v.getGraphicManager().addGraphicSelectionListener(glistener);
+                }
             }
             selectedImagePane.setSelected(true);
             eventManager.updateComponentsListener(selectedImagePane);
@@ -465,8 +471,7 @@ public abstract class ImageViewerPlugin<E extends ImageElement> extends ViewerPl
         List<DragGraphic> selGraphics = defaultView2d.getGraphicManager().getSelectedDragableGraphics();
 
         // Check if there is at least one graphic not complete (numer of pts == UNDEFINED)
-        if (selGraphics.stream().filter(g -> Objects.equals(g.getPtsNumber(), Graphic.UNDEFINED)).findFirst()
-            .isPresent()) {
+        if (selGraphics.stream().anyMatch(g -> Objects.equals(g.getPtsNumber(), Graphic.UNDEFINED))) {
             return;
         }
 

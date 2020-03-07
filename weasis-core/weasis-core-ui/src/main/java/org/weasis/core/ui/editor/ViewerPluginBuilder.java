@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.editor;
 
@@ -17,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -27,6 +27,7 @@ import org.weasis.core.api.explorer.model.DataExplorerModel;
 import org.weasis.core.api.gui.util.AppProperties;
 import org.weasis.core.api.media.MimeInspector;
 import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.FileCache;
 import org.weasis.core.api.media.data.ImageElement;
 import org.weasis.core.api.media.data.MediaElement;
 import org.weasis.core.api.media.data.MediaReader;
@@ -261,10 +262,14 @@ public class ViewerPluginBuilder {
 
             for (MediaElement media : medias) {
                 if (media instanceof ImageElement) {
-                    File gpxFile = new File(media.getFile().getPath() + ".xml"); //$NON-NLS-1$
-                    GraphicModel graphicModel = XmlSerializer.readPresentationModel(gpxFile);
-                    if (graphicModel != null) {
-                        media.setTag(TagW.PresentationModel, graphicModel);
+                    FileCache fc = media.getFileCache();
+                    Optional<File> fo = fc.getOriginalFile();
+                    if (fc.isLocalFile() && fo.isPresent()) {                      
+                        File gpxFile = new File(fo.get().getPath() + ".xml"); //$NON-NLS-1$
+                        GraphicModel graphicModel = XmlSerializer.readPresentationModel(gpxFile);
+                        if (graphicModel != null) {
+                            media.setTag(TagW.PresentationModel, graphicModel);
+                        }
                     }
                 }
             }

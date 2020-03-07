@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.acquire.explorer.gui.central.tumbnail;
 
@@ -28,6 +27,7 @@ import org.weasis.acquire.explorer.AcquireImageInfo;
 import org.weasis.acquire.explorer.AcquireManager;
 import org.weasis.acquire.explorer.core.bean.SeriesGroup;
 import org.weasis.acquire.explorer.gui.central.AcquireTabPanel;
+import org.weasis.acquire.explorer.gui.central.SerieButton;
 import org.weasis.base.explorer.JIThumbnailCache;
 import org.weasis.base.explorer.list.AThumbnailListPane;
 import org.weasis.base.explorer.list.IThumbnailModel;
@@ -162,7 +162,7 @@ public class AcquireCentralTumbnailPane<E extends MediaElement> extends AThumbna
                 AcquireImageInfo info = AcquireManager.findByImage((ImageElement) media);
                 if (info != null) {
                     SeriesGroup seriesGroup =
-                        Optional.ofNullable(tumbList.getSelectedSerie()).map(b -> b.getSerie()).orElse(null);
+                        Optional.ofNullable(tumbList.getSelectedSerie()).map(SerieButton::getSerie).orElse(null);
                     AcquireManager.importImage(info, seriesGroup, 0);
                 }
             }

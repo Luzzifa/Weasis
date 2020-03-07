@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.gui.util;
 
@@ -22,12 +21,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.Objects;
 
 import javax.swing.AbstractAction;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
@@ -61,6 +63,7 @@ import javax.swing.text.html.StyleSheet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.weasis.core.api.Messages;
+import org.weasis.core.api.service.BundleTools;
 import org.weasis.core.api.util.StringUtil;
 
 /**
@@ -280,6 +283,31 @@ public class JMVUtils {
             return new Dimension(30, 30);
         }
     }
+    
+    public static JButton createHelpButton(final String topic, boolean small) {
+        JButton jButtonHelp;
+        if (small) {
+          jButtonHelp =
+              new JButton(new ImageIcon(JMVUtils.class.getResource("/icon/16x16/help.png"))); //$NON-NLS-1$
+          jButtonHelp.setPreferredSize(getSmallIconButtonSize());
+        } else {
+          jButtonHelp =
+              new JButton(new ImageIcon(JMVUtils.class.getResource("/icon/22x22/help.png"))); //$NON-NLS-1$
+          jButtonHelp.setPreferredSize(getBigIconButtonSize());
+        }
+        jButtonHelp.addActionListener(
+            e -> {
+              try {
+                JMVUtils.openInDefaultBrowser(
+                    jButtonHelp,
+                    new URL(BundleTools.SYSTEM_PREFERENCES.getProperty("weasis.help.online") + topic)); //$NON-NLS-1$
+              } catch (MalformedURLException e1) {
+                LOGGER.error("Cannot open online help", e1); //$NON-NLS-1$
+              }
+            });
+
+        return jButtonHelp;
+      }
 
     public static HTMLEditorKit buildHTMLEditorKit(JComponent component) {
         Objects.requireNonNull(component);

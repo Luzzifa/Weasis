@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.model.graphic.imp.angle;
 
@@ -320,8 +319,8 @@ public class FourPointsAngleToolGraphic extends AbstractDragGraphic {
                 lineIJP = new Point2D[3]; // order can be IJP (r>1) or JIP (r<0) or IPJ / JPI (0<=r<=1)
                 lineKLP = new Point2D[3]; // order can be KLP (s>1) or LKP (s<0) or KPL / LPK (0<=s<=1)
 
-                intersectIJsegment = (r >= 0 && r <= 1) ? true : false; // means IJPline[1].equals(P)
-                intersectKLsegment = (s >= 0 && s <= 1) ? true : false; // means KLPline[1].equals(P)
+                intersectIJsegment = (r >= 0 && r <= 1); // means IJPline[1].equals(P)
+                intersectKLsegment = (s >= 0 && s <= 1); // means KLPline[1].equals(P)
 
                 lineIJP[0] = r >= 0 ? ptI : ptJ;
                 lineIJP[1] = r < 0 ? ptI : r > 1 ? ptJ : ptP;

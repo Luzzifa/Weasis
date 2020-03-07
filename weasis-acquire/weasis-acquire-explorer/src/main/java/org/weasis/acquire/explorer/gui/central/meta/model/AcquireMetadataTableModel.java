@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.acquire.explorer.gui.central.meta.model;
 
@@ -48,7 +47,7 @@ public abstract class AcquireMetadataTableModel extends AbstractTableModel {
         for (TagW tag : tagsToPublish) {
             if (tagable == null || tagable.getTagValue(tag) == null) {
                 if (tagsToDisplay == null
-                    || !Arrays.stream(tagsToDisplay).filter(t -> t.equals(tag)).findFirst().isPresent()) {
+                    || Arrays.stream(tagsToDisplay).noneMatch(t -> t.equals(tag))) {
                     addTags.add(tag);
                 }
             }
@@ -128,14 +127,14 @@ public abstract class AcquireMetadataTableModel extends AbstractTableModel {
 
     public boolean isValueRequired(int rowIndex) {
         TagW tag = tagsToDisplay()[rowIndex];
-        return Arrays.stream(tagsToPublish()).filter(t -> t.equals(tag)).findFirst().isPresent();
+        return Arrays.stream(tagsToPublish()).anyMatch(t -> t.equals(tag));
     }
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
         TagW tag = tagsToDisplay()[rowIndex];
         if (columnIndex == 1) {
-            return Arrays.stream(tagsEditable()).filter(t -> t.equals(tag)).findFirst().isPresent();
+            return Arrays.stream(tagsEditable()).anyMatch(t -> t.equals(tag));
         }
         return false;
     }

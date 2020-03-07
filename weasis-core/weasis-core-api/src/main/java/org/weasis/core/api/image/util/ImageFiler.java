@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.image.util;
 
@@ -42,7 +41,6 @@ import org.weasis.opencv.op.ImageConversion;
 public class ImageFiler extends AbstractBufferHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ImageFiler.class);
-    private static final String TIFF_TAG = "tiff_directory"; //$NON-NLS-1$
 
     public static final int TILESIZE = 512;
     public static final int LIMIT_TO_TILE = 768;
@@ -119,7 +117,8 @@ public class ImageFiler extends AbstractBufferHandler {
                 return ImageConversion.convertTo(source, BufferedImage.TYPE_BYTE_GRAY);
             }
 
-            if (source.getColorModel() instanceof IndexColorModel || numBands == 2 || numBands > 3 || (source.getSampleModel() instanceof BandedSampleModel && numBands > 1)) {
+            if (source.getColorModel() instanceof IndexColorModel || numBands == 2 || numBands > 3
+                || (source.getSampleModel() instanceof BandedSampleModel && numBands > 1)) {
                 int imageType = numBands >= 3 ? BufferedImage.TYPE_3BYTE_BGR : BufferedImage.TYPE_BYTE_GRAY;
                 return ImageConversion.convertTo(source, imageType);
             }
@@ -132,7 +131,7 @@ public class ImageFiler extends AbstractBufferHandler {
             return ""; //$NON-NLS-1$
         }
         // replace extension after the last point
-        int pointPos = filename.lastIndexOf("."); //$NON-NLS-1$
+        int pointPos = filename.lastIndexOf('.');
         if (pointPos == -1) {
             pointPos = filename.length();
         }

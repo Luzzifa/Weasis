@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.wave;
 
@@ -36,9 +35,9 @@ class ToolPanel extends JPanel {
         @Override
         public String toString() {
             if (this == AUTO) {
-                return "auto mm/s";
+                return "auto mm/s"; //$NON-NLS-1$
             }
-            return DecFormater.oneDecimal(value) + " mm/s";
+            return DecFormater.allNumber(value) + " mm/s"; //$NON-NLS-1$
         }
         
         public static Speed fromValue(double value) {
@@ -67,9 +66,9 @@ class ToolPanel extends JPanel {
         @Override
         public String toString() {
             if (this == AUTO) {
-                return "auto mm/mV";
+                return "auto mm/mV"; //$NON-NLS-1$
             }
-            return String.format("%d mm/mV", value);
+            return String.format("%d mm/mV", value); //$NON-NLS-1$
         }
 
         public static Amplitude fromValue(int value) {
@@ -92,7 +91,7 @@ class ToolPanel extends JPanel {
     }
 
     private void init() {
-        JLabel zoomLabel = new JLabel("Zoom");
+        JLabel zoomLabel = new JLabel(Messages.getString("ToolPanel.zoom")); //$NON-NLS-1$
         this.add(zoomLabel);
 
         JComboBox<Speed> speed = new JComboBox<>(Speed.values());
@@ -113,7 +112,7 @@ class ToolPanel extends JPanel {
     }
 
     private void addDisplayFormatComponent() {
-        formatLabel = new JLabel("Display format" + StringUtil.COLON);
+        formatLabel = new JLabel(Messages.getString("ToolPanel.disp_format") + StringUtil.COLON); //$NON-NLS-1$
         this.add(formatLabel);
 
         formatCombo = new JComboBox<>(Format.values());

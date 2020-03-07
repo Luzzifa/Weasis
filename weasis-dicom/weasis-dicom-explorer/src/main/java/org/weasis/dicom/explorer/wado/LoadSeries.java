@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer.wado;
 
@@ -18,14 +17,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +41,7 @@ import org.dcm4che3.util.SafeClose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.gui.task.SeriesProgressMonitor;
 import org.weasis.core.api.gui.util.AppProperties;
 import org.weasis.core.api.gui.util.GuiExecutor;
 import org.weasis.core.api.media.data.MediaElement;
@@ -54,11 +54,15 @@ import org.weasis.core.api.media.data.TagW;
 import org.weasis.core.api.media.data.TagW.TagType;
 import org.weasis.core.api.media.data.Thumbnail;
 import org.weasis.core.api.service.AuditLog;
+import org.weasis.core.api.service.BundleTools;
+import org.weasis.core.api.util.ClosableURLConnection;
 import org.weasis.core.api.util.FileUtil;
+import org.weasis.core.api.util.LocalUtil;
 import org.weasis.core.api.util.NetworkUtil;
 import org.weasis.core.api.util.StreamIOException;
 import org.weasis.core.api.util.StringUtil;
 import org.weasis.core.api.util.ThreadUtil;
+import org.weasis.core.api.util.URLParameters;
 import org.weasis.core.ui.docking.UIManager;
 import org.weasis.core.ui.editor.SeriesViewerFactory;
 import org.weasis.core.ui.editor.ViewerPluginBuilder;
@@ -82,6 +86,9 @@ import org.weasis.dicom.explorer.ThumbnailMouseAndKeyAdapter;
 import org.weasis.dicom.mf.HttpTag;
 import org.weasis.dicom.mf.SopInstance;
 import org.weasis.dicom.mf.WadoParameters;
+import org.weasis.dicom.web.Multipart;
+import org.weasis.dicom.web.Multipart.Handler;
+import org.weasis.dicom.web.MultipartReader;
 
 public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesImporter {
 
@@ -100,12 +107,19 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
     private final Series<?> dicomSeries;
     private final SeriesInstanceList seriesInstanceList;
     private final JProgressBar progressBar;
-    private volatile DownloadPriority priority = null;
+    private final URLParameters urlParams;
+    private DownloadPriority priority = null;
     private final boolean writeInCache;
+    private final boolean startDownloading;
 
     private volatile boolean hasError = false;
 
     public LoadSeries(Series<?> dicomSeries, DicomModel dicomModel, int concurrentDownloads, boolean writeInCache) {
+        this(dicomSeries, dicomModel, concurrentDownloads, writeInCache, true);
+    }
+
+    public LoadSeries(Series<?> dicomSeries, DicomModel dicomModel, int concurrentDownloads, boolean writeInCache,
+        boolean startDownloading) {
         super(Messages.getString("DicomExplorer.loading"), writeInCache, true); //$NON-NLS-1$
         if (dicomModel == null || dicomSeries == null) {
             throw new IllegalArgumentException("null parameters"); //$NON-NLS-1$
@@ -122,10 +136,12 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
         }
         this.dicomSeries.setSeriesLoader(this);
         this.concurrentDownloads = concurrentDownloads;
+        this.urlParams = new URLParameters(getHttpTags((WadoParameters) dicomSeries.getTagValue(TagW.WadoParameters)));
+        this.startDownloading = startDownloading;
     }
 
     public LoadSeries(Series<?> dicomSeries, DicomModel dicomModel, JProgressBar progressBar, int concurrentDownloads,
-        boolean writeInCache) {
+        boolean writeInCache, boolean startDownloading) {
         super(Messages.getString("DicomExplorer.loading"), writeInCache, true); //$NON-NLS-1$
         if (dicomModel == null || dicomSeries == null || progressBar == null) {
             throw new IllegalArgumentException("null parameters"); //$NON-NLS-1$
@@ -139,6 +155,8 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
         this.writeInCache = writeInCache;
         this.dicomSeries.setSeriesLoader(this);
         this.concurrentDownloads = concurrentDownloads;
+        this.urlParams = new URLParameters(getHttpTags((WadoParameters) dicomSeries.getTagValue(TagW.WadoParameters)));
+        this.startDownloading = startDownloading;
     }
 
     @Override
@@ -229,6 +247,10 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
         return hasError;
     }
 
+    public boolean isStartDownloading() {
+        return startDownloading;
+    }
+
     private String getLoadType() {
         final WadoParameters wado = (WadoParameters) dicomSeries.getTagValue(TagW.WadoParameters);
         if (wado == null || !StringUtil.hasText(wado.getBaseURL())) {
@@ -271,7 +293,7 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
         buf.append(time);
         buf.append(" rate:"); //$NON-NLS-1$
         // rate in kB/s or B/ms
-        DecimalFormat format = new DecimalFormat("#.##"); //$NON-NLS-1$
+        DecimalFormat format = new DecimalFormat("#.##", LocalUtil.getDecimalFormatSymbols()); //$NON-NLS-1$
         buf.append(val == null ? 0 : format.format(dicomSeries.getFileSize() / time));
         return buf.toString();
     }
@@ -343,56 +365,41 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
                 continue;
             }
 
-            URLConnection urlConnection = null;
-            try {
-                String studyUID = ""; //$NON-NLS-1$
-                String seriesUID = ""; //$NON-NLS-1$
-                if (!wado.isRequireOnlySOPInstanceUID()) {
-                    studyUID = TagD.getTagValue(study, Tag.StudyInstanceUID, String.class);
-                    seriesUID = TagD.getTagValue(dicomSeries, Tag.SeriesInstanceUID, String.class);
-                }
-                StringBuilder request = new StringBuilder(wado.getBaseURL());
-                if (instance.getDirectDownloadFile() == null) {
-                    request.append("?requestType=WADO&studyUID="); //$NON-NLS-1$
-                    request.append(studyUID);
-                    request.append("&seriesUID="); //$NON-NLS-1$
-                    request.append(seriesUID);
-                    request.append("&objectUID="); //$NON-NLS-1$
-                    request.append(instance.getSopInstanceUID());
-                    request.append("&contentType=application%2Fdicom"); //$NON-NLS-1$
-                    TransferSyntax transcoding = DicomManager.getInstance().getWadoTSUID();
-                    if (transcoding.getTransferSyntaxUID() != null) {
-                        dicomSeries.setTag(TagW.WadoTransferSyntaxUID, transcoding.getTransferSyntaxUID());
-                    }
-                    // for dcm4chee: it gets original DICOM files when no TransferSyntax is specified
-                    String wadoTsuid = (String) dicomSeries.getTagValue(TagW.WadoTransferSyntaxUID);
-                    if (StringUtil.hasText(wadoTsuid)) {
-                        request.append("&transferSyntax="); //$NON-NLS-1$
-                        request.append(wadoTsuid);
-                        if (transcoding.getTransferSyntaxUID() != null) {
-                            dicomSeries.setTag(TagW.WadoCompressionRate, transcoding.getCompression());
-                        }
-                        Integer rate = (Integer) dicomSeries.getTagValue(TagW.WadoCompressionRate);
-                        if (rate != null && rate > 0) {
-                            request.append("&imageQuality="); //$NON-NLS-1$
-                            request.append(rate);
-                        }
-                    }
-                } else {
-                    request.append(instance.getDirectDownloadFile());
-                }
-                request.append(wado.getAdditionnalParameters());
-                urlConnection = initConnection(new URL(request.toString()), wado);
-            } catch (MalformedURLException e) {
-                LOGGER.error("Invalid URL", e); //$NON-NLS-1$
-                continue;
-            } catch (IOException e) {
-                hasError = true;
-                LOGGER.error("Cannot open URL", e); //$NON-NLS-1$
-                continue;
+            String studyUID = ""; //$NON-NLS-1$
+            String seriesUID = ""; //$NON-NLS-1$
+            if (!wado.isRequireOnlySOPInstanceUID()) {
+                studyUID = TagD.getTagValue(study, Tag.StudyInstanceUID, String.class);
+                seriesUID = TagD.getTagValue(dicomSeries, Tag.SeriesInstanceUID, String.class);
             }
-            LOGGER.debug("Download DICOM instance {} index {}.", urlConnection, k); //$NON-NLS-1$
-            Download ref = new Download(urlConnection);
+            StringBuilder request = new StringBuilder(wado.getBaseURL());
+            if (instance.getDirectDownloadFile() == null) {
+                request.append("?requestType=WADO&studyUID="); //$NON-NLS-1$
+                request.append(studyUID);
+                request.append("&seriesUID="); //$NON-NLS-1$
+                request.append(seriesUID);
+                request.append("&objectUID="); //$NON-NLS-1$
+                request.append(instance.getSopInstanceUID());
+                request.append("&contentType=application%2Fdicom"); //$NON-NLS-1$
+
+                // for dcm4chee: it gets original DICOM files when no TransferSyntax is specified
+                String wadoTsuid = (String) dicomSeries.getTagValue(TagW.WadoTransferSyntaxUID);
+                if (StringUtil.hasText(wadoTsuid)) {
+                    request.append("&transferSyntax="); //$NON-NLS-1$
+                    request.append(wadoTsuid);
+                    Integer rate = (Integer) dicomSeries.getTagValue(TagW.WadoCompressionRate);
+                    if (rate != null && rate > 0) {
+                        request.append("&imageQuality="); //$NON-NLS-1$
+                        request.append(rate);
+                    }
+                }
+            } else {
+                request.append(instance.getDirectDownloadFile());
+            }
+            request.append(wado.getAdditionnalParameters());
+            String url = request.toString();
+
+            LOGGER.debug("Download DICOM instance {} index {}.", url, k); //$NON-NLS-1$
+            Download ref = new Download(url);
             tasks.add(ref);
         }
 
@@ -407,19 +414,25 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
         return true;
     }
 
-    private static URLConnection initConnection(URL url, WadoParameters wadoParameters) throws IOException {
-        // If there is a proxy, it should be already configured
-        URLConnection urlConnection = url.openConnection();
-        // Set http login (no protection, only convert in base64)
-        if (wadoParameters.getWebLogin() != null) {
-            urlConnection.setRequestProperty("Authorization", "Basic " + wadoParameters.getWebLogin()); //$NON-NLS-1$ //$NON-NLS-2$
-        }
-        if (!wadoParameters.getHttpTaglist().isEmpty()) {
-            for (HttpTag tag : wadoParameters.getHttpTaglist()) {
-                urlConnection.setRequestProperty(tag.getKey(), tag.getValue());
+    private static Map<String, String> getHttpTags(WadoParameters wadoParams) {
+        boolean hasBundleTags = !BundleTools.SESSION_TAGS_FILE.isEmpty();
+        boolean hasWadoTags = wadoParams != null && wadoParams.getHttpTaglist() != null;
+        boolean hasWadoLogin = wadoParams != null && wadoParams.getWebLogin() != null;
+
+        if (hasWadoTags || hasWadoLogin || hasBundleTags) {
+            HashMap<String, String> map = new HashMap<>(BundleTools.SESSION_TAGS_FILE);
+            if (hasWadoTags) {
+                for (HttpTag tag : wadoParams.getHttpTaglist()) {
+                    map.put(tag.getKey(), tag.getValue());
+                }
             }
+            if (hasWadoLogin) {
+                // Set http login (no protection, only convert in base64)
+                map.put("Authorization", "Basic " + wadoParams.getWebLogin()); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+            return map;
         }
-        return urlConnection;
+        return null;
     }
 
     public void startDownloadImageReference(final WadoParameters wadoParameters) {
@@ -448,6 +461,7 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
 
     public void loadThumbnail(SopInstance instance, WadoParameters wadoParameters) {
         File file = null;
+        URLParameters params = urlParams;
         if (instance.getDirectDownloadFile() == null) {
             String studyUID = ""; //$NON-NLS-1$
             String seriesUID = ""; //$NON-NLS-1$
@@ -462,20 +476,40 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
                 LOGGER.error("Downloading thumbnail", e); //$NON-NLS-1$
             }
         } else {
-            String thumURL = (String) dicomSeries.getTagValue(TagW.DirectDownloadThumbnail);
-            if (thumURL != null) {
-                if (thumURL.startsWith(Thumbnail.THUMBNAIL_CACHE_DIR.getPath())) {
-                    file = new File(thumURL);
-                } else {
-                    try {
-                        File outFile = File.createTempFile("tumb_", FileUtil.getExtension(thumURL), //$NON-NLS-1$
-                            Thumbnail.THUMBNAIL_CACHE_DIR);
-                        FileUtil.writeStreamWithIOException(
-                            new URL(wadoParameters.getBaseURL() + thumURL).openConnection(), outFile);
-                        file = outFile;
-                    } catch (Exception e) {
-                        LOGGER.error("Downloading thumbnail", e); //$NON-NLS-1$
+            String thumURL = null;
+            String extension = ".jpg"; //$NON-NLS-1$
+            if (wadoParameters.isWadoRS()) {
+                thumURL = TagD.getTagValue(dicomSeries, Tag.RetrieveURL, String.class);
+                if (thumURL != null) {
+                    thumURL += "/thumbnail?viewport=" + Thumbnail.MAX_SIZE + "%2C" + +Thumbnail.MAX_SIZE; //$NON-NLS-1$ //$NON-NLS-2$
+                    params = new URLParameters(new HashMap<>(urlParams.getHeaders()));
+                    params.getHeaders().put("Accept", "image/jpeg"); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+            } else {
+                thumURL = (String) dicomSeries.getTagValue(TagW.DirectDownloadThumbnail);
+                if (StringUtil.hasLength(thumURL)) {
+                    if (thumURL.startsWith(Thumbnail.THUMBNAIL_CACHE_DIR.getPath())) {
+                        file = new File(thumURL);
+                        thumURL = null;
+                    } else {
+                        thumURL = wadoParameters.getBaseURL() + thumURL;
+                        extension = FileUtil.getExtension(thumURL);
                     }
+                }
+            }
+
+            if (thumURL != null) {
+                try {
+                    File outFile = File.createTempFile("tumb_", extension, //$NON-NLS-1$
+                        Thumbnail.THUMBNAIL_CACHE_DIR);
+                    ClosableURLConnection httpCon = NetworkUtil.getUrlConnection(thumURL, params);
+                    FileUtil.writeStreamWithIOException(httpCon.getInputStream(), outFile);
+                    if (outFile.length() == 0) {
+                        throw new IllegalStateException("Thumbnail file is empty"); //$NON-NLS-1$
+                    }
+                    file = outFile;
+                } catch (Exception e) {
+                    LOGGER.error("Downloading thumbnail with {}", thumURL, e); //$NON-NLS-1$
                 }
             }
         }
@@ -532,18 +566,21 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
         return dicomSeries;
     }
 
-    public File getJPEGThumnails(WadoParameters wadoParameters, String StudyUID, String SeriesUID,
-        String SOPInstanceUID) throws IOException {
+    public File getJPEGThumnails(WadoParameters wadoParameters, String studyUID, String seriesUID,
+        String sopInstanceUID) throws IOException {
         // TODO set quality as a preference
         URL url =
-            new URL(wadoParameters.getBaseURL() + "?requestType=WADO&studyUID=" + StudyUID + "&seriesUID=" + SeriesUID //$NON-NLS-1$ //$NON-NLS-2$
-                + "&objectUID=" + SOPInstanceUID + "&contentType=image/jpeg&imageQuality=70" + "&rows=" //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            new URL(wadoParameters.getBaseURL() + "?requestType=WADO&studyUID=" + studyUID + "&seriesUID=" + seriesUID //$NON-NLS-1$ //$NON-NLS-2$
+                + "&objectUID=" + sopInstanceUID + "&contentType=image/jpeg&imageQuality=70" + "&rows=" //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                 + Thumbnail.MAX_SIZE + "&columns=" + Thumbnail.MAX_SIZE + wadoParameters.getAdditionnalParameters()); //$NON-NLS-1$
 
-        URLConnection httpCon = initConnection(url, wadoParameters);
+        ClosableURLConnection httpCon = NetworkUtil.getUrlConnection(url, urlParams);
         File outFile = File.createTempFile("tumb_", ".jpg", Thumbnail.THUMBNAIL_CACHE_DIR); //$NON-NLS-1$ //$NON-NLS-2$
         LOGGER.debug("Start to download JPEG thbumbnail {} to {}.", url, outFile.getName()); //$NON-NLS-1$
-        FileUtil.writeStreamWithIOException(httpCon, outFile);
+        FileUtil.writeStreamWithIOException(httpCon.getInputStream(), outFile);
+        if (outFile.length() == 0) {
+            throw new IllegalStateException("Thumbnail file is empty"); //$NON-NLS-1$
+        }
         return outFile;
     }
 
@@ -586,16 +623,12 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
 
     class Download implements Callable<Boolean> {
 
-        private final URLConnection urlConnection; // download URL
+        private final String url; // download URL
         private Status status; // current status of download
 
-        public Download(URLConnection urlConnection) {
-            this.urlConnection = urlConnection;
+        public Download(String url) {
+            this.url = url;
             this.status = Status.DOWNLOADING;
-        }
-
-        public String getUrl() {
-            return urlConnection.getURL().toExternalForm();
         }
 
         public void pause() {
@@ -614,25 +647,23 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
             status = Status.ERROR;
         }
 
-        private InputStream replaceToDefaultTSUID() throws IOException {
-            String old = getUrl();
+        private ClosableURLConnection replaceToDefaultTSUID() throws IOException {
             StringBuilder buffer = new StringBuilder();
-            int start = old.indexOf("&transferSyntax="); //$NON-NLS-1$
+            int start = url.indexOf("&transferSyntax="); //$NON-NLS-1$
             if (start != -1) {
-                int end = old.indexOf("&", start + 16); //$NON-NLS-1$
-                buffer.append(old.substring(0, start + 16));
+                int end = url.indexOf('&', start + 16);
+                buffer.append(url.substring(0, start + 16));
                 buffer.append(TransferSyntax.EXPLICIT_VR_LE.getTransferSyntaxUID());
                 if (end != -1) {
-                    buffer.append(old.substring(end));
+                    buffer.append(url.substring(end));
                 }
             } else {
-                buffer.append(old);
+                buffer.append(url);
                 buffer.append("&transferSyntax="); //$NON-NLS-1$
                 buffer.append(TransferSyntax.EXPLICIT_VR_LE.getTransferSyntaxUID());
             }
 
-            final WadoParameters wado = (WadoParameters) dicomSeries.getTagValue(TagW.WadoParameters);
-            return NetworkUtil.getUrlInputStream(initConnection(new URL(buffer.toString()), wado));
+            return NetworkUtil.getUrlConnection(new URL(buffer.toString()), urlParams);
         }
 
         @Override
@@ -670,10 +701,10 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
             boolean cache = true;
             File tempFile = null;
             DicomMediaIO dicomReader = null;
+            ClosableURLConnection urlcon = NetworkUtil.getUrlConnection(new URL(url), urlParams);
+            try (InputStream stream = urlcon.getInputStream()) {
 
-            try (InputStream stream = NetworkUtil.getUrlInputStream(urlConnection)) {
-
-                if (!writeInCache && getUrl().startsWith("file:")) { //$NON-NLS-1$
+                if (!writeInCache && url.startsWith("file:")) { //$NON-NLS-1$
                     cache = false;
                 }
                 if (cache) {
@@ -687,10 +718,10 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
 
                 if (dicomSeries != null) {
                     if (cache) {
-                        LOGGER.debug("Start to download DICOM instance {} to {}.", getUrl(), tempFile.getName()); //$NON-NLS-1$
-                        int bytesTransferred = downloadInFileCache(stream, tempFile);
+                        LOGGER.debug("Start to download DICOM instance {} to {}.", url, tempFile.getName()); //$NON-NLS-1$
+                        int bytesTransferred = downloadInFileCache(urlcon, tempFile);
                         if (bytesTransferred == -1) {
-                            LOGGER.info("End of downloading {} ", getUrl()); //$NON-NLS-1$
+                            LOGGER.info("End of downloading {} ", url); //$NON-NLS-1$
                         } else if (bytesTransferred >= 0) {
                             return false;
                         }
@@ -700,7 +731,7 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
                             tempFile = renameFile;
                         }
                     } else {
-                        tempFile = new File(urlConnection.getURL().toURI());
+                        tempFile = new File(NetworkUtil.getURI(url));
                     }
                     // Ensure the stream is closed if image is not written in cache
                     FileUtil.safeClose(stream);
@@ -744,22 +775,42 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
             return true;
         }
 
-        private int downloadInFileCache(InputStream stream, File tempFile) throws IOException {
-            final WadoParameters wado = (WadoParameters) dicomSeries.getTagValue(TagW.WadoParameters);
-            int[] overrideList = Optional.ofNullable(wado).map(WadoParameters::getOverrideDicomTagIDList).orElse(null);
+        private int downloadInFileCache(ClosableURLConnection urlcon, File tempFile) throws IOException {
+            final WadoParameters wadoParams = (WadoParameters) dicomSeries.getTagValue(TagW.WadoParameters);
+            int[] overrideList =
+                Optional.ofNullable(wadoParams).map(WadoParameters::getOverrideDicomTagIDList).orElse(null);
 
             int bytesTransferred;
             if (overrideList == null) {
-                bytesTransferred =
-                    FileUtil.writeStream(new DicomSeriesProgressMonitor(dicomSeries, stream, false), tempFile);
+                if (wadoParams.isWadoRS()) {
+                    int[] readBytes = { 0 };
+                    Multipart.Handler handler = new Handler() {
+
+                        @Override
+                        public void readBodyPart(MultipartReader multipartReader, int partNumber,
+                            Map<String, String> headers) throws IOException {
+                            // At sop instance level must have only one part
+                            try (InputStream in = multipartReader.newPartInputStream()) {
+                                readBytes[0] =
+                                    FileUtil.writeStream(new SeriesProgressMonitor(dicomSeries, in), tempFile, false);
+                            }
+                        }
+                    };
+
+                    Multipart.parseMultipartRelated(urlcon.getUrlConnection(), urlcon.getInputStream(), handler);
+                    bytesTransferred = readBytes[0];
+                } else {
+                    bytesTransferred = FileUtil.writeStream(
+                        new DicomSeriesProgressMonitor(dicomSeries, urlcon.getInputStream(), false), tempFile);
+                }
             } else {
-                bytesTransferred =
-                    writFile(new DicomSeriesProgressMonitor(dicomSeries, stream, false), tempFile, overrideList);
+                bytesTransferred = writFile(new DicomSeriesProgressMonitor(dicomSeries, urlcon.getInputStream(), false),
+                    tempFile, overrideList);
             }
 
             if (bytesTransferred == Integer.MIN_VALUE) {
                 LOGGER.warn("Stop downloading unsupported TSUID, retry to download non compressed TSUID"); //$NON-NLS-1$
-                InputStream stream2 = replaceToDefaultTSUID();
+                InputStream stream2 = replaceToDefaultTSUID().getInputStream();
                 if (overrideList == null) {
                     bytesTransferred =
                         FileUtil.writeStream(new DicomSeriesProgressMonitor(dicomSeries, stream2, false), tempFile);
@@ -978,7 +1029,7 @@ public class LoadSeries extends ExplorerTask<Boolean, String> implements SeriesI
 
     public LoadSeries cancelAndReplace(LoadSeries s) {
         LoadSeries taskResume = new LoadSeries(s.getDicomSeries(), dicomModel, s.getProgressBar(),
-            s.getConcurrentDownloads(), s.writeInCache);
+            s.getConcurrentDownloads(), s.writeInCache, s.startDownloading);
         s.cancel();
         taskResume.setPriority(s.getPriority());
         Thumbnail thumbnail = (Thumbnail) s.getDicomSeries().getTagValue(TagW.Thumbnail);

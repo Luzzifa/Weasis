@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.model.graphic.imp.area;
 
@@ -67,7 +66,7 @@ public class ThreePointsCircleGraphic extends AbstractDragGraphicArea {
     }
 
     protected Point2D.Double centerPt; // Let O be the center of the three point interpolated circle
-    protected Double radius; // circle radius
+    protected Double radiusPt; // circle radius
 
     public ThreePointsCircleGraphic() {
         super(POINTS_NUMBER);
@@ -105,8 +104,8 @@ public class ThreePointsCircleGraphic extends AbstractDragGraphicArea {
         updateTool();
         Shape newShape = null;
 
-        if (Objects.nonNull(centerPt) && !Objects.equals(radius, 0d)) {
-            newShape = new Ellipse2D.Double(centerPt.getX() - radius, centerPt.getY() - radius, 2 * radius, 2 * radius);
+        if (Objects.nonNull(centerPt) && !Objects.equals(radiusPt, 0d)) {
+            newShape = new Ellipse2D.Double(centerPt.getX() - radiusPt, centerPt.getY() - radiusPt, 2 * radiusPt, 2 * radiusPt);
         }
 
         setShape(newShape, mouseEvent);
@@ -141,14 +140,14 @@ public class ThreePointsCircleGraphic extends AbstractDragGraphicArea {
                         new MeasureItem(CENTER_Y, adapter.getYCalibratedValue(centerPt.getY()), adapter.getUnit()));
                 }
                 if (RADIUS.getComputed()) {
-                    measVal.add(new MeasureItem(RADIUS, ratio * radius, adapter.getUnit()));
+                    measVal.add(new MeasureItem(RADIUS, ratio * radiusPt, adapter.getUnit()));
                 }
                 if (DIAMETER.getComputed()) {
-                    measVal.add(new MeasureItem(DIAMETER, ratio * radius * 2.0, adapter.getUnit()));
+                    measVal.add(new MeasureItem(DIAMETER, ratio * radiusPt * 2.0, adapter.getUnit()));
                 }
                 if (AREA.getComputed()) {
                     String unit = "pix".equals(adapter.getUnit()) ? adapter.getUnit() : adapter.getUnit() + "2"; //$NON-NLS-1$ //$NON-NLS-2$
-                    measVal.add(new MeasureItem(AREA, Math.PI * radius * radius * ratio * ratio, unit));
+                    measVal.add(new MeasureItem(AREA, Math.PI * radiusPt * radiusPt * ratio * ratio, unit));
                 }
 
                 List<MeasureItem> stats = getImageStatistics(layer, releaseEvent);
@@ -170,13 +169,13 @@ public class ThreePointsCircleGraphic extends AbstractDragGraphicArea {
     @Override
     public boolean isShapeValid() {
         updateTool();
-        return super.isShapeValid() && centerPt != null && radius < 50000;
+        return super.isShapeValid() && centerPt != null && radiusPt < 50000;
     }
 
     protected void updateTool() {
         Point2D ptA = getHandlePoint(0);
 
         centerPt = GeomUtil.getCircleCenter(pts);
-        radius = (centerPt != null && ptA != null) ? centerPt.distance(ptA) : 0;
+        radiusPt = (centerPt != null && ptA != null) ? centerPt.distance(ptA) : 0;
     }
 }

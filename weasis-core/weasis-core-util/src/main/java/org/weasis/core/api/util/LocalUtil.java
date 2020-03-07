@@ -1,16 +1,16 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.util;
 
 import java.text.DateFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
@@ -23,7 +23,7 @@ public class LocalUtil {
     private static final DateTimeFormatter defaultDateTimeFormatter =
         DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM);
 
-    private static volatile Locale localeFormat = null;
+    private static Locale localeFormat = null;
 
     private LocalUtil() {
     }
@@ -59,7 +59,7 @@ public class LocalUtil {
         return new Locale(language, country, variant);
     }
 
-    public static Locale getLocaleFormat() {
+    public static synchronized  Locale getLocaleFormat() {
         Locale l = LocalUtil.localeFormat;
         if (l == null) {
             l = Locale.getDefault();
@@ -67,10 +67,15 @@ public class LocalUtil {
         return l;
     }
 
-    public static void setLocaleFormat(Locale value) {
+    public static synchronized void setLocaleFormat(Locale value) {
         LocalUtil.localeFormat = value;
     }
 
+    
+    public static DecimalFormatSymbols getDecimalFormatSymbols() {
+        return DecimalFormatSymbols.getInstance(getLocaleFormat());
+    }
+    
     public static NumberFormat getNumberInstance() {
         return NumberFormat.getNumberInstance(getLocaleFormat());
     }

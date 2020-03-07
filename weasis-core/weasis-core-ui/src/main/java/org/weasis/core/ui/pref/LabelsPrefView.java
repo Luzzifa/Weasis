@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.pref;
 
@@ -146,7 +145,7 @@ public class LabelsPrefView extends AbstractItemDialogPage {
     public void resetoDefaultValues() {
         MeasureToolBar.measureGraphicList.forEach(g -> {
             List<Measurement> list = g.getMeasurementList();
-            Optional.ofNullable(list).ifPresent(l -> l.forEach(m -> m.resetToGraphicLabelValue()));
+            Optional.ofNullable(list).ifPresent(l -> l.forEach(Measurement::resetToGraphicLabelValue));
         });
 
         selectTool((Graphic) comboBoxTool.getSelectedItem());

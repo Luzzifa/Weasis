@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.media.data;
 
@@ -16,6 +15,7 @@ import java.awt.Component;
 import java.awt.Composite;
 import java.awt.Container;
 import java.awt.Graphics2D;
+import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.Rectangle;
@@ -343,7 +343,7 @@ public class SeriesThumbnail extends Thumbnail
             final JProgressBar bar = progressBar;
             if (bar != null) {
                 if (series.getFileSize() > 0.0) {
-                    g2d.drawString(FileUtil.formatSize(series.getFileSize()), x + 2, hbleft - 12);
+                    g2d.drawString(FileUtil.humanReadableByte(series.getFileSize(), false), x + 2, hbleft - 12);
                 }
                 if (bar.isVisible()) {
                     // Draw in the bottom right corner of thumbnail
@@ -397,8 +397,11 @@ public class SeriesThumbnail extends Thumbnail
             JProgressBar bar = progressBar;
             if (bar.isVisible()) {
                 Point p = e.getPoint();
-                p.translate(-(thumbnailSize - stopButton.width), -5);
-                if (stopButton.contains(p)) {
+                Insets bd = this.getInsets();
+                p.translate(-(thumbnailSize + bd.left - stopButton.width), -6 -bd.top);
+                Rectangle rect = stopButton.getBounds();
+                rect.grow(2, 2);
+                if (rect.contains(p)) {
                     SeriesImporter loader = series.getSeriesLoader();
                     if (loader != null) {
                         loader.stop();
@@ -408,7 +411,7 @@ public class SeriesThumbnail extends Thumbnail
                 }
 
                 p.translate(3 * BUTTON_SIZE_HALF, 0);
-                if (startButton.getBounds().contains(p)) {
+                if (rect.contains(p)) {
                     SeriesImporter loader = series.getSeriesLoader();
                     if (loader != null) {
                         loader.resume();

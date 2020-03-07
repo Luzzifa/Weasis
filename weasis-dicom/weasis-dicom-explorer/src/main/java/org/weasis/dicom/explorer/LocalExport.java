@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer;
 
@@ -19,6 +18,7 @@ import java.awt.image.Raster;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.swing.BoxLayout;
@@ -127,10 +127,10 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
     protected void showExportingOptions() {
         Properties pref = Activator.IMPORT_EXPORT_PERSISTENCE;
         final JCheckBox boxKeepNames = new JCheckBox(Messages.getString("LocalExport.keep_dir"), //$NON-NLS-1$
-            Boolean.valueOf(pref.getProperty(KEEP_INFO_DIR, "true"))); //$NON-NLS-1$
+            Boolean.valueOf(pref.getProperty(KEEP_INFO_DIR, Boolean.TRUE.toString())));
 
-        Object seltected = comboBoxImgFormat.getSelectedItem();
-        if (EXPORT_FORMAT[0].equals(seltected)) {
+        Object selected = comboBoxImgFormat.getSelectedItem();
+        if (EXPORT_FORMAT[0].equals(selected)) {
             final JCheckBox box1 = new JCheckBox(Messages.getString("LocalExport.inc_dicomdir"), //$NON-NLS-1$
                 Boolean.valueOf(pref.getProperty(INC_DICOMDIR, Boolean.TRUE.toString())));
             final JCheckBox box2 = new JCheckBox(Messages.getString("LocalExport.cd_folders"), //$NON-NLS-1$
@@ -150,9 +150,9 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
                 pref.setProperty(KEEP_INFO_DIR, String.valueOf(boxKeepNames.isSelected()));
                 pref.setProperty(CD_COMPATIBLE, String.valueOf(box2.isSelected()));
             }
-        } else if (EXPORT_FORMAT[1].equals(seltected)) {
+        } else if (EXPORT_FORMAT[1].equals(selected)) {
             // No option
-        } else if (EXPORT_FORMAT[2].equals(seltected)) {
+        } else if (EXPORT_FORMAT[2].equals(selected)) {
             final JSlider slider = new JSlider(0, 100, StringUtil.getInt(pref.getProperty(IMG_QUALITY, null), 80));
 
             final JPanel palenSlider1 = new JPanel();
@@ -179,9 +179,9 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
                 pref.setProperty(IMG_QUALITY, String.valueOf(slider.getValue()));
                 pref.setProperty(KEEP_INFO_DIR, String.valueOf(boxKeepNames.isSelected()));
             }
-        } else if (EXPORT_FORMAT[3].equals(seltected)) {
+        } else if (EXPORT_FORMAT[3].equals(selected)) {
             final JCheckBox box1 = new JCheckBox(Messages.getString("LocalExport.ch_16"), //$NON-NLS-1$
-                Boolean.valueOf(pref.getProperty(IMG_16_BIT, "false"))); //$NON-NLS-1$
+                Boolean.valueOf(pref.getProperty(IMG_16_BIT, Boolean.FALSE.toString())));
             Object[] options = { box1, boxKeepNames };
             int response = JOptionPane.showOptionDialog(this, options, Messages.getString("LocalExport.export_message"), //$NON-NLS-1$
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, null, null);
@@ -311,9 +311,7 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
                 for (int i = 0; i < chars.length; i++) {
                     chars[i] = '0';
                 }
-
                 return new String(chars) + val;
-
             } else {
                 return val;
             }
@@ -361,18 +359,24 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
                         String path = buildPath(img, keepNames, node);
                         File destinationDir = new File(exportDir, path);
                         destinationDir.mkdirs();
-
+                        
+                        boolean mustBeReleased = false;
                         PlanarImage image = img.getImage(null);
                         if (image != null && !img16) {
-                            image = img.getRenderedImage(image);
+                            PlanarImage rimage = img.getRenderedImage(image);
+                            mustBeReleased = !Objects.equals(rimage, image);
+                            image = rimage;
                         }
                         if (image != null) {
                             File destinationFile = new File(destinationDir, instance + getExtension(format));
                             if (EXPORT_FORMAT[3].equals(format)) {
                                 ImageProcessor.writePNG(image.toMat(), destinationFile);
                             } else {
-                                MatOfInt map = new MatOfInt(Imgcodecs.CV_IMWRITE_JPEG_QUALITY, jpegQuality);
+                                MatOfInt map = new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, jpegQuality);
                                 ImageProcessor.writeImage(image.toMat(), destinationFile, map);
+                            }
+                            if(mustBeReleased) {
+                                ImageConversion.releasePlanarImage(image);
                             }
                             if (seriesGph.contains(img.getTagValue(TagD.get(Tag.SeriesInstanceUID)))) {
                                 XmlSerializer.writePresentation(img, destinationFile);
@@ -381,9 +385,6 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
                             LOGGER.error("Cannot export DICOM file to {}: {}", format, //$NON-NLS-1$
                                 img.getFileCache().getOriginalFile().orElse(null));
                         }
-
-                        // Prevent to many files open on Linux (Ubuntu => 1024) and close image stream
-                        img.removeImageFromCache();
                     } else if (node.getUserObject() instanceof MediaElement
                         && node.getUserObject() instanceof FileExtractor) {
                         MediaElement dcm = (MediaElement) node.getUserObject();
@@ -433,9 +434,9 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
             writeDir = FileUtil.createTempDir(AppProperties.buildAccessibleTempDirectory("tmp", "zip")); //$NON-NLS-1$ //$NON-NLS-2$
         } else {
             Properties pref = Activator.IMPORT_EXPORT_PERSISTENCE;
-            writeDicomdir = Boolean.valueOf(pref.getProperty(INC_DICOMDIR, "true"));//$NON-NLS-1$
-            keepNames = writeDicomdir ? false : Boolean.valueOf(pref.getProperty(KEEP_INFO_DIR, "true"));//$NON-NLS-1$
-            cdCompatible = Boolean.valueOf(pref.getProperty(CD_COMPATIBLE, "false"));//$NON-NLS-1$
+            writeDicomdir = Boolean.valueOf(pref.getProperty(INC_DICOMDIR, Boolean.TRUE.toString()));
+            keepNames = writeDicomdir ? false : Boolean.valueOf(pref.getProperty(KEEP_INFO_DIR, Boolean.TRUE.toString()));
+            cdCompatible = Boolean.valueOf(pref.getProperty(CD_COMPATIBLE, Boolean.FALSE.toString()));
             writeDir = exportDir;
         }
 
@@ -479,7 +480,8 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
                         if (img.saveToFile(destinationFile)) {
                             writeInDicomDir(writer, img, node, iuid, destinationFile);
                         } else {
-                            LOGGER.error("Cannot export DICOM file: {}", img.getFileCache().getOriginalFile().orElse(null)); //$NON-NLS-1$
+                            LOGGER.error("Cannot export DICOM file: {}", //$NON-NLS-1$
+                                img.getFileCache().getOriginalFile().orElse(null));
                         }
                     } else if (node.getUserObject() instanceof MediaElement) {
                         MediaElement dcm = (MediaElement) node.getUserObject();
@@ -613,7 +615,8 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
 
     private static String buildFolderName(String str, int length) {
         String value = FileUtil.getValidFileNameWithoutHTML(str);
-        return StringUtil.getTruncatedString(value, length, Suffix.NO);
+        value = StringUtil.getTruncatedString(value, length, Suffix.UNDERSCORE).trim();
+        return value.endsWith(".") ? value.substring(0, value.length() - 1) : value; //$NON-NLS-1$
     }
 
     private static boolean writeInDicomDir(DicomDirWriter writer, MediaElement img, DefaultMutableTreeNode node,
@@ -621,7 +624,7 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
         if (writer != null) {
             if (!(img.getMediaReader() instanceof DcmMediaReader)
                 || ((DcmMediaReader) img.getMediaReader()).getDicomObject() == null) {
-                LOGGER.error("Cannot export DICOM file: ", img.getFileCache().getOriginalFile().orElse(null)); //$NON-NLS-1$
+                LOGGER.error("Cannot export DICOM file: {}", img.getFileCache().getOriginalFile().orElse(null)); //$NON-NLS-1$
                 return false;
             }
             return writeInDicomDir(writer, ((DcmMediaReader) img.getMediaReader()).getDicomObject(), node, iuid,
@@ -707,11 +710,10 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
         PlanarImage thumbnail = null;
         PlanarImage imgPl = image.getImage(null);
         if (imgPl != null) {
-            PlanarImage img = image.getRenderedImage(imgPl);
-            thumbnail = ImageProcessor.buildThumbnail(img, new Dimension(128, 128), true);
+            try (PlanarImage img = image.getRenderedImage(imgPl)) {
+                thumbnail = ImageProcessor.buildThumbnail(img, new Dimension(128, 128), true);
+            }
         }
-        // Prevent to many files open on Linux (Ubuntu => 1024) and close image stream
-        image.removeImageFromCache();
 
         if (thumbnail == null) {
             return null;
@@ -721,7 +723,6 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
 
         String pmi = TagD.getTagValue(image, Tag.PhotometricInterpretation, String.class);
         if (thumbnail.channels() >= 3) {
-
             pmi = "PALETTE COLOR"; //$NON-NLS-1$
         }
 
@@ -730,7 +731,7 @@ public class LocalExport extends AbstractItemDialogPage implements ExportDicom {
 
         if ("PALETTE COLOR".equals(pmi)) { //$NON-NLS-1$
             BufferedImage bi =
-                            ImageConversion.convertTo(ImageConversion.toBufferedImage(thumbnail), BufferedImage.TYPE_BYTE_INDEXED);
+                ImageConversion.convertTo(ImageConversion.toBufferedImage(thumbnail), BufferedImage.TYPE_BYTE_INDEXED);
             IndexColorModel cm = (IndexColorModel) bi.getColorModel();
             int[] lutDesc = { cm.getMapSize(), 0, 8 };
             byte[] r = new byte[lutDesc[0]];

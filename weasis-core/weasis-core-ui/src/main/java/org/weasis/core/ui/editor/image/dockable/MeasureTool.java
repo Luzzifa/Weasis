@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.editor.image.dockable;
 
@@ -310,6 +309,25 @@ public class MeasureTool extends PluginTool implements GraphicSelectionListener 
 
         // just clear tableContainer if measList is null
         if (measList != null) {
+            String[] headers = { Messages.getString("MeasureTool.param"), Messages.getString("MeasureTool.val") }; //$NON-NLS-1$ //$NON-NLS-2$
+            jtable.setModel(new SimpleTableModel(headers, getLabels(measList)));
+            jtable.getColumnModel().getColumn(1).setCellRenderer(new TableNumberRenderer());
+            createTableHeaders(jtable);
+            int height = (jtable.getRowHeight() + jtable.getRowMargin()) * jtable.getRowCount()
+                + jtable.getTableHeader().getHeight() + 5;
+            tableContainer.setPreferredSize(new Dimension(jtable.getColumnModel().getTotalColumnWidth(), height));
+            tableContainer.add(jtable.getTableHeader(), BorderLayout.PAGE_START);
+            tableContainer.add(jtable, BorderLayout.CENTER);
+            TableColumnAdjuster.pack(jtable);
+        } else {
+            tableContainer.setPreferredSize(new Dimension(50, 50));
+        }
+        tableContainer.revalidate();
+        tableContainer.repaint();
+    }
+
+    public static Object[][] getLabels(List<MeasureItem> measList) {
+        if (measList != null) {
             Object[][] labels = new Object[measList.size()][];
             for (int i = 0; i < labels.length; i++) {
                 MeasureItem m = measList.get(i);
@@ -327,21 +345,9 @@ public class MeasureTool extends PluginTool implements GraphicSelectionListener 
                 row[1] = m.getValue();
                 labels[i] = row;
             }
-            String[] headers = { Messages.getString("MeasureTool.param"), Messages.getString("MeasureTool.val") }; //$NON-NLS-1$ //$NON-NLS-2$
-            jtable.setModel(new SimpleTableModel(headers, labels));
-            jtable.getColumnModel().getColumn(1).setCellRenderer(new TableNumberRenderer());
-            createTableHeaders(jtable);
-            int height = (jtable.getRowHeight() + jtable.getRowMargin()) * jtable.getRowCount()
-                + jtable.getTableHeader().getHeight() + 5;
-            tableContainer.setPreferredSize(new Dimension(jtable.getColumnModel().getTotalColumnWidth(), height));
-            tableContainer.add(jtable.getTableHeader(), BorderLayout.PAGE_START);
-            tableContainer.add(jtable, BorderLayout.CENTER);
-            TableColumnAdjuster.pack(jtable);
-        } else {
-            tableContainer.setPreferredSize(new Dimension(50, 50));
+            return labels;
         }
-        tableContainer.revalidate();
-        tableContainer.repaint();
+        return null;
     }
 
     public static int getNumberOfMeasures(boolean[] select) {
@@ -418,9 +424,9 @@ public class MeasureTool extends PluginTool implements GraphicSelectionListener 
                         String cmd = action.cmd();
                         if (!toolBar.isCommandActive(cmd)) {
                             MouseActions mouseActions = eventManager.getMouseActions();
-                            mouseActions.setAction(MouseActions.LEFT, cmd);
+                            mouseActions.setAction(MouseActions.T_LEFT, cmd);
                             view.setMouseActions(mouseActions);
-                            toolBar.changeButtonState(MouseActions.LEFT, cmd);
+                            toolBar.changeButtonState(MouseActions.T_LEFT, cmd);
                         }
                     }
                 }

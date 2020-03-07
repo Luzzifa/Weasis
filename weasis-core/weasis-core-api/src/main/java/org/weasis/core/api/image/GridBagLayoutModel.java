@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.image;
 
@@ -23,7 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.swing.Icon;
-import javax.xml.parsers.SAXParser;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.slf4j.Logger;
@@ -82,9 +81,9 @@ public class GridBagLayoutModel implements GUIEntry, Copyable<GridBagLayoutModel
         this.id = id;
         this.constraints = new LinkedHashMap<>();
         try {
-            SAXParser parser = SAXParserFactory.newInstance().newSAXParser();
-            SAXAdapter adapter = new SAXAdapter();
-            parser.parse(stream, adapter);
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.newSAXParser().parse(stream, new SAXAdapter());
         } catch (Exception e) {
             LOGGER.error("Loading layout xml", e); //$NON-NLS-1$
         }

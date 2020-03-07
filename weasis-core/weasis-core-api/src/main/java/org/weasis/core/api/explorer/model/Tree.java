@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.api.explorer.model;
 
@@ -20,16 +19,16 @@ public class Tree<T> {
 
     private final ArrayList<Tree<T>> leafs = new ArrayList<>();
 
-    private volatile Tree<T> parent = null;
+    private Tree<T> parent = null;
 
-    private volatile HashMap<T, Tree<T>> locate = new HashMap<>();
+    private HashMap<T, Tree<T>> locate = new HashMap<>();
 
     public Tree(T head) {
         this.head = head;
         locate.put(head, this);
     }
 
-    public void addLeaf(T root, T leaf) {
+    public synchronized void addLeaf(T root, T leaf) {
         if (locate.containsKey(root)) {
             locate.get(root).addLeaf(leaf);
         } else {
@@ -37,7 +36,7 @@ public class Tree<T> {
         }
     }
 
-    private Tree<T> addLeaf(T leaf) {
+    private synchronized Tree<T> addLeaf(T leaf) {
         Tree<T> t = new Tree<>(leaf);
         leafs.add(t);
         t.parent = this;
@@ -46,7 +45,7 @@ public class Tree<T> {
         return t;
     }
 
-    public void removeLeaf(T leaf) {
+    public synchronized void removeLeaf(T leaf) {
         Tree<T> t = locate.remove(leaf);
         if (t != null) {
             t.parent.leafs.remove(t);
@@ -55,7 +54,7 @@ public class Tree<T> {
         }
     }
 
-    public Tree<T> setAsParent(T parentRoot) {
+    public synchronized Tree<T> setAsParent(T parentRoot) {
         Tree<T> t = new Tree<>(parentRoot);
         t.leafs.add(this);
         this.parent = t;
@@ -69,15 +68,15 @@ public class Tree<T> {
         return head;
     }
 
-    public Tree<T> getTree(T element) {
+    public synchronized Tree<T> getTree(T element) {
         return locate.get(element);
     }
 
-    public Tree<T> getParent() {
+    public synchronized Tree<T> getParent() {
         return parent;
     }
 
-    public Collection<T> getSuccessors(T root) {
+    public synchronized Collection<T> getSuccessors(T root) {
         Collection<T> successors = new ArrayList<>();
         Tree<T> tree = getTree(root);
         if (null != tree) {
@@ -106,7 +105,7 @@ public class Tree<T> {
         return printTree(0);
     }
 
-    public void clear() {
+    public synchronized void clear() {
         locate.clear();
         leafs.clear();
         locate.put(head, this);

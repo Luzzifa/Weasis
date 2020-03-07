@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.core.ui.model.graphic.imp;
 
@@ -83,8 +82,8 @@ public class AnnotationGraphic extends AbstractDragGraphic {
         super.initCopy(graphic);
         if (graphic instanceof AnnotationGraphic) {
             AnnotationGraphic annotationGraphic = (AnnotationGraphic) graphic;
-            labels = Optional.ofNullable(annotationGraphic.labels).map(l -> l.clone()).orElse(null);
-            labelBounds = Optional.ofNullable(annotationGraphic.labelBounds).map(lb -> lb.getBounds2D()).orElse(null);
+            labels = Optional.ofNullable(annotationGraphic.labels).map(String[]::clone).orElse(null);
+            labelBounds = Optional.ofNullable(annotationGraphic.labelBounds).map(Rectangle2D::getBounds2D).orElse(null);
             labelWidth = annotationGraphic.labelWidth;
             labelHeight = annotationGraphic.labelHeight;
         }

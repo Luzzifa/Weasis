@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.viewer2d;
 
@@ -398,21 +397,6 @@ public class View2d extends DefaultView2d<DicomImageElement> {
                  */
                 lens.setCommandFromParentView(name, evt.getNewValue());
                 lens.updateZoom();
-            }
-        }
-    }
-
-    @Override
-    public void reset() {
-        super.reset();
-        DicomImageElement img = getImage();
-        if (img != null) {
-            Object key = img.getKey();
-            List<PRSpecialElement> prList =
-                DicomModel.getPrSpecialElements(series, TagD.getTagValue(img, Tag.SOPInstanceUID, String.class),
-                    key instanceof Integer ? (Integer) key + 1 : null);
-            if (!prList.isEmpty()) {
-                setPresentationState(prList.get(0), false);
             }
         }
     }
@@ -919,7 +903,7 @@ public class View2d extends DefaultView2d<DicomImageElement> {
                 if (pts.size() == 2) {
                     LineWithGapGraphic line = new LineWithGapGraphic();
                     line.setCenterGap(center);
-                    line.setGapSize(75);
+                    line.setGapSize(50);
                     graphic = line.buildGraphic(pts);
                 } else {
                     graphic = new PolygonGraphic().buildGraphic(pts);
@@ -1004,7 +988,7 @@ public class View2d extends DefaultView2d<DicomImageElement> {
             PresentationStateReader prReader =
                 (PresentationStateReader) getActionValue(PresentationStateReader.TAG_PR_READER);
             for (int i = 0; i < c.length; i++) {
-                c[i] = imageElement.pixel2mLUT(c[i], prReader, pixelPadding);
+                c[i] = imageElement.pixelToRealValue(c[i], prReader, pixelPadding).doubleValue();
             }
             pixelInfo.setValues(c);
         }
@@ -1158,7 +1142,7 @@ public class View2d extends DefaultView2d<DicomImageElement> {
         TitleMenuItem itemTitle =
             new TitleMenuItem(Messages.getString("View2d.left_mouse") + StringUtil.COLON, popupMenu.getInsets()); //$NON-NLS-1$
         popupMenu.add(itemTitle);
-        popupMenu.setLabel(MouseActions.LEFT);
+        popupMenu.setLabel(MouseActions.T_LEFT);
         String action = eventManager.getMouseActions().getLeft();
         ButtonGroup groupButtons = new ButtonGroup();
         int count = popupMenu.getComponentCount();
@@ -1169,7 +1153,7 @@ public class View2d extends DefaultView2d<DicomImageElement> {
                 ActionListener leftButtonAction = event -> {
                     if (event.getSource() instanceof JRadioButtonMenuItem) {
                         JRadioButtonMenuItem item = (JRadioButtonMenuItem) event.getSource();
-                        toolBar.changeButtonState(MouseActions.LEFT, item.getActionCommand());
+                        toolBar.changeButtonState(MouseActions.T_LEFT, item.getActionCommand());
                     }
                 };
 
@@ -1342,10 +1326,10 @@ public class View2d extends DefaultView2d<DicomImageElement> {
             Optional<ViewerPlugin<?>> pluginOp = UIManager.VIEWER_PLUGINS.stream()
                 .filter(p -> p instanceof View2dContainer && ((View2dContainer) p).isContainingView(View2d.this))
                 .findFirst();
-            if(!pluginOp.isPresent()) {
+            if (!pluginOp.isPresent()) {
                 return false;
             }
-            
+
             View2dContainer selPlugin = (View2dContainer) pluginOp.get();
             Series seq;
             try {

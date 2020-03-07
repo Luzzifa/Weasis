@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.acquire.explorer;
 
@@ -45,8 +44,8 @@ public class AcquireImageValues implements Copyable<AcquireImageValues> {
     }
 
     public AcquireImageValues(AcquireImageValues object) {
-        setCropZone(Optional.ofNullable(object.cropZone).map(r -> r.getBounds()).orElse(null));
-        setLayerOffset(Optional.ofNullable(object.layerOffset).map(p -> p.getLocation()).orElse(null));
+        setCropZone(Optional.ofNullable(object.cropZone).map(Rectangle::getBounds).orElse(null));
+        setLayerOffset(Optional.ofNullable(object.layerOffset).map(Point::getLocation).orElse(null));
         setOrientation(object.orientation);
         setRotation(object.rotation);
         setBrightness(object.brightness);

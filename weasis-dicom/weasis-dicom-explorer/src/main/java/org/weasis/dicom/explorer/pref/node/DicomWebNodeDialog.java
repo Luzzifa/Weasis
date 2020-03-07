@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2009-2018 Weasis Team and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v20.html
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
  *
- * Contributors:
- *     Nicolas Roduit - initial API and implementation
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.weasis.dicom.explorer.pref.node;
 
@@ -33,6 +32,7 @@ import javax.swing.border.EmptyBorder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.JMVUtils;
 import org.weasis.core.api.util.LocalUtil;
 import org.weasis.core.api.util.StringUtil;
 import org.weasis.dicom.explorer.Messages;
@@ -52,6 +52,7 @@ public class DicomWebNodeDialog extends JDialog {
     private JPanel footPanel;
     private JLabel lblType;
     private JComboBox<DicomWebNode.WebType> comboBox;
+    private JButton btnHttpHeaders;
 
     public DicomWebNodeDialog(Window parent, String title, DicomWebNode dicomNode,
         JComboBox<DicomWebNode> nodeComboBox) {
@@ -89,7 +90,7 @@ public class DicomWebNodeDialog extends JDialog {
         descriptionTf = new JTextField();
         GridBagConstraints gbcDescriptionTf = new GridBagConstraints();
         gbcDescriptionTf.anchor = GridBagConstraints.LINE_START;
-        gbcDescriptionTf.insets = new Insets(0, 0, 5, 5);
+        gbcDescriptionTf.insets = new Insets(0, 0, 5, 0);
         gbcDescriptionTf.gridx = 1;
         gbcDescriptionTf.gridy = 0;
         content.add(descriptionTf, gbcDescriptionTf);
@@ -106,7 +107,7 @@ public class DicomWebNodeDialog extends JDialog {
         comboBox = new JComboBox<>(new DefaultComboBoxModel<>(DicomWebNode.WebType.values()));
         GridBagConstraints gbcComboBox = new GridBagConstraints();
         gbcComboBox.anchor = GridBagConstraints.LINE_START;
-        gbcComboBox.insets = new Insets(0, 0, 5, 5);
+        gbcComboBox.insets = new Insets(0, 0, 5, 0);
         gbcComboBox.gridx = 1;
         gbcComboBox.gridy = 1;
         content.add(comboBox, gbcComboBox);
@@ -123,7 +124,7 @@ public class DicomWebNodeDialog extends JDialog {
         urlTf.setColumns(30);
         GridBagConstraints gbcAeTitleTf = new GridBagConstraints();
         gbcAeTitleTf.anchor = GridBagConstraints.WEST;
-        gbcAeTitleTf.insets = new Insets(0, 0, 5, 5);
+        gbcAeTitleTf.insets = new Insets(0, 0, 5, 0);
         gbcAeTitleTf.gridx = 1;
         gbcAeTitleTf.gridy = 2;
         content.add(urlTf, gbcAeTitleTf);
@@ -133,6 +134,15 @@ public class DicomWebNodeDialog extends JDialog {
         myFormat.setMaximumFractionDigits(0);
 
         this.getContentPane().add(content, BorderLayout.CENTER);
+        
+        btnHttpHeaders = new JButton(Messages.getString("DicomWebNodeDialog.httpHeaders")); //$NON-NLS-1$
+        GridBagConstraints gbcBtnHttpHeaders = new GridBagConstraints();
+        gbcBtnHttpHeaders.anchor = GridBagConstraints.WEST;
+        gbcBtnHttpHeaders.insets = new Insets(2, 0, 7, 0);
+        gbcBtnHttpHeaders.gridx = 1;
+        gbcBtnHttpHeaders.gridy = 3;
+        content.add(btnHttpHeaders, gbcBtnHttpHeaders);
+        btnHttpHeaders.addActionListener(e -> manageHeader());
 
         footPanel = new JPanel();
         FlowLayout flowLayout = (FlowLayout) footPanel.getLayout();
@@ -151,6 +161,11 @@ public class DicomWebNodeDialog extends JDialog {
 
         cancelButton.setText(Messages.getString("PrinterDialog.cancel")); //$NON-NLS-1$
         cancelButton.addActionListener(e -> dispose());
+    }
+
+    private void manageHeader() {
+        HttpHeadersEditor dialog = new HttpHeadersEditor(this, dicomNode);
+        JMVUtils.showCenterScreen(dialog);
     }
 
     private void okButtonActionPerformed() {
